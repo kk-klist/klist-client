@@ -60,13 +60,13 @@ return ( /* 정상 렌더 */ );
 
 ## state 배치 규칙
 
-| 값의 종류 | 위치 |
-| --- | --- |
-| 서버 데이터 (목록, 상세) | TanStack Query — **useState/Redux에 재저장 절대 금지** |
-| 화면 로컬 값 (모달 열림, 입력값) | `useState` |
-| 앱 전체 공유 값 (로그인 사용자) | Redux slice |
-| 페이지 번호, 검색어 | URL 쿼리스트링 (`useSearchParams`) |
-| 부모→자식 2~3단계 전달 | 그냥 props (전역화하지 않는다) |
+| 값의 종류                        | 위치                                                   |
+| -------------------------------- | ------------------------------------------------------ |
+| 서버 데이터 (목록, 상세)         | TanStack Query — **useState/Redux에 재저장 절대 금지** |
+| 화면 로컬 값 (모달 열림, 입력값) | `useState`                                             |
+| 앱 전체 공유 값 (로그인 사용자)  | Redux slice                                            |
+| 페이지 번호, 검색어              | URL 쿼리스트링 (`useSearchParams`)                     |
+| 부모→자식 2~3단계 전달           | 그냥 props (전역화하지 않는다)                         |
 
 - 멀리 떨어진 컴포넌트가 같은 서버 데이터를 쓸 때는 각자 같은 Query 훅을 호출한다 (queryKey가 같으면 캐시 공유, API 재호출 없음).
 - 새 Redux 상태 추가 전 자문: 2개 이상 기능에서 필요한가? 서버 데이터가 아닌가? URL로 표현 불가한가? 셋 다 통과할 때만 추가.
@@ -96,10 +96,10 @@ return ( /* 정상 렌더 */ );
 
 ### queryKey 패턴 (이 외 형식 금지)
 
-| 상황 | queryKey |
-| --- | --- |
-| 목록 전체 | `['{기능명}']` |
-| 단건 | `['{기능명}', id]` |
+| 상황           | queryKey                         |
+| -------------- | -------------------------------- |
+| 목록 전체      | `['{기능명}']`                   |
+| 단건           | `['{기능명}', id]`               |
 | 검색/필터 목록 | `['{기능명}', 'list', 조건객체]` |
 
 ## 폼/검증 규칙 (= 백엔드 @Valid)
@@ -130,18 +130,18 @@ if (errorResponse.code === 'INVALID_INPUT') {
 
 ## 네이밍 요약
 
-| 대상 | 규칙 | 예시 |
-| --- | --- | --- |
-| 컴포넌트 파일 | PascalCase `.jsx` | `ChecklistItem.jsx` |
-| 페이지 컴포넌트 | `XxxPage.jsx` + `export default` | `ChecklistPage.jsx` |
-| 커스텀 훅 | `use동사대상.js` | `useCreateChecklist.js` |
-| API 파일 | `{기능}Api.js` | `checklistApi.js` |
-| zod 스키마 파일 | `{기능}Schemas.js` | `checklistSchemas.js` |
-| Redux slice | `{기능}Slice.js` | `authSlice.js` |
-| API 호출 함수 | 조회 `fetchXxx`, 나머지 백엔드 메서드명 동일 | `fetchChecklists` |
-| Query 훅 | 조회 `useXxxQuery`, 변경 `useXxxMutation` | `useChecklistsQuery` |
-| 함수/변수 | camelCase | `formatDate` |
-| 상수 | UPPER_SNAKE_CASE | `MAX_PAGE_SIZE` |
+| 대상            | 규칙                                         | 예시                    |
+| --------------- | -------------------------------------------- | ----------------------- |
+| 컴포넌트 파일   | PascalCase `.jsx`                            | `ChecklistItem.jsx`     |
+| 페이지 컴포넌트 | `XxxPage.jsx` + `export default`             | `ChecklistPage.jsx`     |
+| 커스텀 훅       | `use동사대상.js`                             | `useCreateChecklist.js` |
+| API 파일        | `{기능}Api.js`                               | `checklistApi.js`       |
+| zod 스키마 파일 | `{기능}Schemas.js`                           | `checklistSchemas.js`   |
+| Redux slice     | `{기능}Slice.js`                             | `authSlice.js`          |
+| API 호출 함수   | 조회 `fetchXxx`, 나머지 백엔드 메서드명 동일 | `fetchChecklists`       |
+| Query 훅        | 조회 `useXxxQuery`, 변경 `useXxxMutation`    | `useChecklistsQuery`    |
+| 함수/변수       | camelCase                                    | `formatDate`            |
+| 상수            | UPPER_SNAKE_CASE                             | `MAX_PAGE_SIZE`         |
 
 ## 페이징
 
@@ -152,12 +152,12 @@ if (errorResponse.code === 'INVALID_INPUT') {
 
 커밋 메시지는 `type: 내용` 형식으로 쓴다. `type`은 아래 중 하나만 사용한다.
 
-| type | 용도 |
-| --- | --- |
-| `feat` | 새 기능 |
-| `fix` | 버그 수정 |
-| `refactor` | 동작 변화 없는 코드 구조 개선 |
-| `style` | 포맷·세미콜론 등 코드 의미 없는 변경 (Tailwind class 조정 포함) |
-| `docs` | 문서 (README, CLAUDE.md 등) |
-| `chore` | 빌드 설정, 패키지 설치, 설정 파일 (Vite/Tailwind/shadcn 세팅 등) |
-| `test` | 테스트 코드 |
+| type       | 용도                                                             |
+| ---------- | ---------------------------------------------------------------- |
+| `feat`     | 새 기능                                                          |
+| `fix`      | 버그 수정                                                        |
+| `refactor` | 동작 변화 없는 코드 구조 개선                                    |
+| `style`    | 포맷·세미콜론 등 코드 의미 없는 변경 (Tailwind class 조정 포함)  |
+| `docs`     | 문서 (README, CLAUDE.md 등)                                      |
+| `chore`    | 빌드 설정, 패키지 설치, 설정 파일 (Vite/Tailwind/shadcn 세팅 등) |
+| `test`     | 테스트 코드                                                      |
