@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from '@/shared/utils/toast';
 import { useKakaoLoader, getKakao } from './useKakaoLoader';
 import * as mapApi from './mapApi';
-import { DEFAULT_CENTER, QUICK_PLACES, radiusForLevel, getCurrentPosition } from './geo';
+import { DEFAULT_CENTER, QUICK_PLACES, radiusForLevel } from './geo';
+import { getCurrentPosition } from '@/shared/utils/geo';
 import { PURPLE_PIN, TEAL_PIN, MY_DOT } from './pins';
 import { CATEGORIES } from './mapConstants';
 

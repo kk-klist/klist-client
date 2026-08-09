@@ -1,4 +1,5 @@
 import { cn } from '@/shared/utils/cn';
+import { WeatherOutfitCard } from './WeatherOutfitCard';
 
 // ═══════════════════════════════════════════════════════════════
 // [디자인 깡통 · 예시 파일] 홈 — 담당: 홈 담당자
@@ -122,20 +123,8 @@ export default function HomePage() {
         </span>
       </section>
 
-      {/* 날씨 카드 */}
-      <section className="kb-card flex items-center gap-4 p-4">
-        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-weather-gradient text-xl">
-          ☀️
-        </span>
-        <div>
-          <p className="text-[15px] font-extrabold">
-            22° <span className="font-semibold text-muted-foreground">Seoul · Clear</span>
-          </p>
-          <p className="text-[13px] text-muted-foreground">
-            Light jacket · sneakers · great for outdoor spots
-          </p>
-        </div>
-      </section>
+      {/* 날씨 + 오늘의 추천 복장 카드 */}
+      <WeatherOutfitCard />
 
       {/* Do it now · near you */}
       <section>
