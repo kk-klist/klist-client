@@ -20,6 +20,11 @@ weatherClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // TODO(임시): 실 로그인 연동 전까지 @LoginUser 인증을 통과시키기 위한 디버그 헤더.
+  // 로그인 기능 붙으면 이 블록과 VITE_DEBUG_USER_ID 삭제.
+  if (import.meta.env.VITE_DEBUG_USER_ID) {
+    config.headers['X-Debug-User-Id'] = import.meta.env.VITE_DEBUG_USER_ID;
+  }
   return config;
 });
 

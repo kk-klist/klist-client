@@ -4,8 +4,8 @@ import { getCurrentPosition } from '@/shared/utils/geo';
 
 const unwrap = (res) => res?.data;
 
-const fetchWeatherOutfit = (lat, lng) =>
-  weatherClient.get('/weather/outfit', { params: { lat, lng } }).then(unwrap);
+const fetchWeatherOutfit = (latitude, longitude) =>
+  weatherClient.get('/weather/outfit', { params: { latitude, longitude } }).then(unwrap);
 
 async function fetchCurrentWeatherOutfit() {
   const { lat, lng } = await getCurrentPosition();
