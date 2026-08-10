@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from '@/shared/utils/toast';
 import { useKakaoLoader, getKakao } from './useKakaoLoader';
 import * as mapApi from './mapApi';
-import { DEFAULT_CENTER, QUICK_PLACES, radiusForLevel, getCurrentPosition } from './geo';
+import { DEFAULT_CENTER, QUICK_PLACES, radiusForLevel, getCurrentPosition, GEO_ERROR } from './geo';
 import { PURPLE_PIN, TEAL_PIN, MY_DOT } from './pins';
 import { CATEGORIES } from './mapConstants';
 
@@ -261,8 +261,17 @@ export function useMapPage() {
       setMyLoc(loc);
       drawMyDot(loc);
       mapRef.current?.panTo(new (getKakao().maps.LatLng)(loc.lat, loc.lng));
-    } catch {
-      toast('위치 권한 거부 — 기본 위치(KSPO DOME)로 이동');
+      // 이동 후 즉시 그 위치 기준 nearby 재조회 (idle 이벤트 기다리지 않음)
+      loadForView();
+    } catch (err) {
+      const messages = {
+        [GEO_ERROR.INSECURE]: 'HTTPS 로 열어야 위치를 쓸 수 있어요 — 기본 위치로 이동',
+        [GEO_ERROR.UNSUPPORTED]: '이 브라우저는 위치 기능 미지원 — 기본 위치로 이동',
+        [GEO_ERROR.DENIED]: '위치 권한이 거부됐어요 — 기본 위치로 이동',
+        [GEO_ERROR.UNAVAILABLE]: '위치를 확인 못했어요 (GPS/네트워크) — 기본 위치로 이동',
+        [GEO_ERROR.TIMEOUT]: '위치 확인이 오래 걸려요 — 기본 위치로 이동',
+      };
+      toast(messages[err.code] ?? '위치 조회 실패 — 기본 위치로 이동');
       mapRef.current?.panTo(new (getKakao().maps.LatLng)(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng));
     }
   }
