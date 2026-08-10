@@ -1,10 +1,20 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { toast } from '@/shared/utils/toast';
 import { useKakaoLoader, getKakao } from './useKakaoLoader';
 import * as mapApi from './mapApi';
 import { DEFAULT_CENTER, QUICK_PLACES, radiusForLevel, getCurrentPosition } from './geo';
 import { PURPLE_PIN, TEAL_PIN, MY_DOT } from './pins';
 import { CATEGORIES } from './mapConstants';
+
+// TourAPI 가 지원하는 언어 화이트리스트. 미매칭 시 기본 'ko'.
+// 지금은 지도 페이지 URL query param(?lang=en)으로만 관리한다.
+// 추후 마이페이지 Language 설정 or 온보딩 언어 선택이 붙으면 전역 store 로 승격 예정 (기준문서 참고).
+const SUPPORTED_LANGS = new Set(['ko', 'en', 'ja', 'zh-CN', 'zh-TW']);
+function resolveLang(search) {
+  const raw = new URLSearchParams(search).get('lang');
+  return raw && SUPPORTED_LANGS.has(raw) ? raw : 'ko';
+}
 
 // 백엔드 버킷 행 → 지도 마커용 Place
 function bucketToPlace(b) {
@@ -26,6 +36,9 @@ function bucketToPlace(b) {
 // ⚠ 카카오 SDK 는 imperative 라 서버 호출을 Query 훅 대신 mapApi 함수로 직접 한다 (기준문서 '지도 예외').
 export function useMapPage() {
   const ready = useKakaoLoader();
+  const location = useLocation();
+  const lang = useMemo(() => resolveLang(location.search), [location.search]);
+  const langRef = useRef(lang);
 
   const mapDivRef = useRef(null);
   // ref 를 반환하면 린트(react-hooks/refs)가 훅 반환값 전체를 ref 로 간주하므로,
@@ -83,6 +96,13 @@ export function useMapPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visited]);
 
+  // URL ?lang= 변경 시 langRef 갱신 + 현재 카테고리 재조회 (지도가 이미 뜬 뒤에만)
+  useEffect(() => {
+    langRef.current = lang;
+    if (mapRef.current) loadForView();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
+
   // ---- 마커 렌더 (이전 마커 전부 제거 후 새로 그림) ----
   function renderMarkers(list) {
     const kakao = getKakao();
@@ -119,7 +139,7 @@ export function useMapPage() {
     if (!/^\d+$/.test(p.id)) return; // 카카오 POI/spot-N 은 TourAPI 상세 없음
     setDetailLoading(true);
     try {
-      setDetail(await mapApi.fetchPlaceDetail(p.id, p.contentTypeId ?? undefined));
+      setDetail(await mapApi.fetchPlaceDetail(p.id, p.contentTypeId ?? undefined, langRef.current));
     } catch {
       /* 상세 실패 시 기본 정보 유지 */
     } finally {
@@ -139,13 +159,16 @@ export function useMapPage() {
     setLoading(true);
     try {
       let result = [];
+      const currentLang = langRef.current;
       if (cat.source === 'mylist') result = (await mapApi.fetchBuckets()).map(bucketToPlace);
       else if (cat.source === 'recommend')
         result = await mapApi.fetchRecommend(genreRef.current ?? undefined, lat, lng);
-      else if (cat.source === 'nearby') result = await mapApi.fetchNearby(lat, lng, radius);
+      else if (cat.source === 'nearby')
+        result = await mapApi.fetchNearby(lat, lng, radius, undefined, currentLang);
       else if (cat.source === 'kakao')
         result = await mapApi.fetchPoiByCategory(cat.key, lat, lng, radius);
-      else if (cat.source === 'festival') result = await mapApi.fetchFestivals();
+      else if (cat.source === 'festival')
+        result = await mapApi.fetchFestivals(undefined, currentLang);
       setPlaces(result);
       renderMarkers(result);
       if (result.length === 0 && cat.source !== 'mylist') toast('검색 결과 없음');
@@ -203,7 +226,7 @@ export function useMapPage() {
   async function onSearch(keyword) {
     setLoading(true);
     try {
-      const res = await mapApi.fetchPlacesByKeyword(keyword);
+      const res = await mapApi.fetchPlacesByKeyword(keyword, langRef.current);
       setPlaces(res);
       renderMarkers(res);
       if (res.length === 0) {
