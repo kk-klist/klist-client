@@ -304,6 +304,35 @@ export function useMapPage() {
     }
   }
 
+  /**
+   * 카카오 내비/맵 앱 딥링크로 열기.
+   * - 모바일: kakaonavi:// (턴바이턴) 시도 → 미설치 시 https://map.kakao.com/link/... 로 폴백 (Kakao Map Universal Link)
+   * - 데스크톱: 바로 카카오맵 웹 새창
+   * onFindRoute(지도 내 폴리라인)와 별개로 앱에서 실제 내비게이션 받고 싶을 때 사용.
+   */
+  function onOpenKakaoNavi() {
+    if (!selected || selected.lat == null || selected.lng == null) return;
+    const { title, lat, lng } = selected;
+    const encodedTitle = encodeURIComponent(title ?? '목적지');
+    const webUrl = `https://map.kakao.com/link/to/${encodedTitle},${lat},${lng}`;
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    if (!isMobile) {
+      window.open(webUrl, '_blank');
+      return;
+    }
+
+    // 모바일: 카카오 내비앱 시도 (WGS84 좌표계)
+    const naviUrl = `kakaonavi://navigate?name=${encodedTitle}&x=${lng}&y=${lat}&coord_type=wgs84`;
+    // 앱 미설치 시 브라우저는 아무 반응 없음 → 1.5s 후에도 페이지 보이면 웹으로 폴백
+    window.location.href = naviUrl;
+    window.setTimeout(() => {
+      if (document.visibilityState !== 'hidden') {
+        window.location.href = webUrl;
+      }
+    }, 1500);
+  }
+
   async function onSave() {
     if (!selected || selected.lat == null || selected.lng == null) return;
     try {
@@ -375,6 +404,7 @@ export function useMapPage() {
     onQuickPick,
     onLocate,
     onFindRoute,
+    onOpenKakaoNavi,
     onSave,
     onCheckoff,
     closeSheet: () => setSelected(null),
