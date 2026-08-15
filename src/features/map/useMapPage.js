@@ -196,6 +196,11 @@ export function useMapPage() {
       gridSize: 60,
     });
 
+    // 빈 지도 영역 클릭 → 열려있는 상세 시트 닫기 (마커 클릭은 marker.click 리스너가 selectPlace 를 먼저 실행하므로 영향 없음)
+    kakao.maps.event.addListener(map, 'click', () => {
+      setSelected(null);
+    });
+
     // idle 재조회 (디바운스 400ms) — 위치기반 소스에서만
     kakao.maps.event.addListener(map, 'idle', () => {
       window.clearTimeout(idleTimer.current);
