@@ -38,19 +38,18 @@ function toPoiPlace(p) {
   };
 }
 
-/** Recommend — id 는 Long, 상세 API 없어서 "spot-{id}" 로 wrap */
+/** Recommend — 백엔드 S5 가 TourAPI 기반이라 contentId + title 사용 (TourSpot 과 사실상 동일 스펙 + genre) */
 function toRecommendPlace(r) {
   return {
-    id: `spot-${r.id}`,
-    contentTypeId: null,
-    title: r.name,
+    id: r.contentId,
+    contentTypeId: r.contentTypeId ?? null,
+    title: r.title,
     lat: r.latitude,
     lng: r.longitude,
     thumbnail: r.imageUrl,
     addr: r.address,
     dist: r.distanceMeters ?? null,
     genre: r.genre,
-    saveCount: r.saveCount,
   };
 }
 
@@ -109,8 +108,8 @@ export const fetchRecommend = (genre, lat, lng, radius) =>
     .then(unwrap)
     .then((list) => (list ?? []).map(toRecommendPlace));
 
-// 버킷/체크인 — 팀 #13 담당(/api/v1/bucket-lists) 머지 전까지는 실패 허용 (호출부에서 catch 됨)
-// C2 이슈에서 팀 스펙(/bucket-lists)으로 재작성 예정
+// 버킷/체크인 — 팀 bucket-lists 담당의 GET/DELETE/checkin 준비 전까지는 실패 허용 (호출부에서 catch)
+// 준비되면 이슈 #12 에서 팀 스펙(/bucket-lists)으로 재작성 예정
 export const fetchBuckets = (completed) =>
   client
     .get('/api/v1/bucket', { params: completed != null ? { completed } : {} })
