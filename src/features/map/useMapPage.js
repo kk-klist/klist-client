@@ -1,10 +1,20 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { toast } from '@/shared/utils/toast';
 import { useKakaoLoader, getKakao } from './useKakaoLoader';
 import * as mapApi from './mapApi';
-import { DEFAULT_CENTER, QUICK_PLACES, radiusForLevel, getCurrentPosition } from './geo';
+import { DEFAULT_CENTER, QUICK_PLACES, radiusForLevel, getCurrentPosition, GEO_ERROR } from './geo';
 import { PURPLE_PIN, TEAL_PIN, MY_DOT } from './pins';
 import { CATEGORIES } from './mapConstants';
+
+// TourAPI 가 지원하는 언어 화이트리스트. 미매칭 시 기본 'ko'.
+// 지금은 지도 페이지 URL query param(?lang=en)으로만 관리한다.
+// 추후 마이페이지 Language 설정 or 온보딩 언어 선택이 붙으면 전역 store 로 승격 예정 (기준문서 참고).
+const SUPPORTED_LANGS = new Set(['ko', 'en', 'ja', 'zh-CN', 'zh-TW']);
+function resolveLang(search) {
+  const raw = new URLSearchParams(search).get('lang');
+  return raw && SUPPORTED_LANGS.has(raw) ? raw : 'ko';
+}
 
 // 백엔드 버킷 행 → 지도 마커용 Place
 function bucketToPlace(b) {
@@ -26,6 +36,9 @@ function bucketToPlace(b) {
 // ⚠ 카카오 SDK 는 imperative 라 서버 호출을 Query 훅 대신 mapApi 함수로 직접 한다 (기준문서 '지도 예외').
 export function useMapPage() {
   const ready = useKakaoLoader();
+  const location = useLocation();
+  const lang = useMemo(() => resolveLang(location.search), [location.search]);
+  const langRef = useRef(lang);
 
   const mapDivRef = useRef(null);
   // ref 를 반환하면 린트(react-hooks/refs)가 훅 반환값 전체를 ref 로 간주하므로,
@@ -83,6 +96,13 @@ export function useMapPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visited]);
 
+  // URL ?lang= 변경 시 langRef 갱신 + 현재 카테고리 재조회 (지도가 이미 뜬 뒤에만)
+  useEffect(() => {
+    langRef.current = lang;
+    if (mapRef.current) loadForView();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
+
   // ---- 마커 렌더 (이전 마커 전부 제거 후 새로 그림) ----
   function renderMarkers(list) {
     const kakao = getKakao();
@@ -119,7 +139,7 @@ export function useMapPage() {
     if (!/^\d+$/.test(p.id)) return; // 카카오 POI/spot-N 은 TourAPI 상세 없음
     setDetailLoading(true);
     try {
-      setDetail(await mapApi.fetchPlaceDetail(p.id, p.contentTypeId ?? undefined));
+      setDetail(await mapApi.fetchPlaceDetail(p.id, p.contentTypeId ?? undefined, langRef.current));
     } catch {
       /* 상세 실패 시 기본 정보 유지 */
     } finally {
@@ -139,13 +159,16 @@ export function useMapPage() {
     setLoading(true);
     try {
       let result = [];
+      const currentLang = langRef.current;
       if (cat.source === 'mylist') result = (await mapApi.fetchBuckets()).map(bucketToPlace);
       else if (cat.source === 'recommend')
         result = await mapApi.fetchRecommend(genreRef.current ?? undefined, lat, lng);
-      else if (cat.source === 'nearby') result = await mapApi.fetchNearby(lat, lng, radius);
+      else if (cat.source === 'nearby')
+        result = await mapApi.fetchNearby(lat, lng, radius, undefined, currentLang);
       else if (cat.source === 'kakao')
         result = await mapApi.fetchPoiByCategory(cat.key, lat, lng, radius);
-      else if (cat.source === 'festival') result = await mapApi.fetchFestivals();
+      else if (cat.source === 'festival')
+        result = await mapApi.fetchFestivals(undefined, currentLang);
       setPlaces(result);
       renderMarkers(result);
       if (result.length === 0 && cat.source !== 'mylist') toast('검색 결과 없음');
@@ -171,6 +194,11 @@ export function useMapPage() {
       averageCenter: true,
       minLevel: 7,
       gridSize: 60,
+    });
+
+    // 빈 지도 영역 클릭 → 열려있는 상세 시트 닫기 (마커 클릭은 marker.click 리스너가 selectPlace 를 먼저 실행하므로 영향 없음)
+    kakao.maps.event.addListener(map, 'click', () => {
+      setSelected(null);
     });
 
     // idle 재조회 (디바운스 400ms) — 위치기반 소스에서만
@@ -203,7 +231,7 @@ export function useMapPage() {
   async function onSearch(keyword) {
     setLoading(true);
     try {
-      const res = await mapApi.fetchPlacesByKeyword(keyword);
+      const res = await mapApi.fetchPlacesByKeyword(keyword, langRef.current);
       setPlaces(res);
       renderMarkers(res);
       if (res.length === 0) {
@@ -261,8 +289,17 @@ export function useMapPage() {
       setMyLoc(loc);
       drawMyDot(loc);
       mapRef.current?.panTo(new (getKakao().maps.LatLng)(loc.lat, loc.lng));
-    } catch {
-      toast('위치 권한 거부 — 기본 위치(KSPO DOME)로 이동');
+      // 이동 후 즉시 그 위치 기준 nearby 재조회 (idle 이벤트 기다리지 않음)
+      loadForView();
+    } catch (err) {
+      const messages = {
+        [GEO_ERROR.INSECURE]: 'HTTPS 로 열어야 위치를 쓸 수 있어요 — 기본 위치로 이동',
+        [GEO_ERROR.UNSUPPORTED]: '이 브라우저는 위치 기능 미지원 — 기본 위치로 이동',
+        [GEO_ERROR.DENIED]: '위치 권한이 거부됐어요 — 기본 위치로 이동',
+        [GEO_ERROR.UNAVAILABLE]: '위치를 확인 못했어요 (GPS/네트워크) — 기본 위치로 이동',
+        [GEO_ERROR.TIMEOUT]: '위치 확인이 오래 걸려요 — 기본 위치로 이동',
+      };
+      toast(messages[err.code] ?? '위치 조회 실패 — 기본 위치로 이동');
       mapRef.current?.panTo(new (getKakao().maps.LatLng)(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng));
     }
   }
@@ -304,9 +341,38 @@ export function useMapPage() {
     }
   }
 
+  /**
+   * 카카오 내비/맵 앱 딥링크로 열기.
+   * - 모바일: kakaonavi:// (턴바이턴) 시도 → 미설치 시 https://map.kakao.com/link/... 로 폴백 (Kakao Map Universal Link)
+   * - 데스크톱: 바로 카카오맵 웹 새창
+   * onFindRoute(지도 내 폴리라인)와 별개로 앱에서 실제 내비게이션 받고 싶을 때 사용.
+   */
+  function onOpenKakaoNavi() {
+    if (!selected || selected.lat == null || selected.lng == null) return;
+    const { title, lat, lng } = selected;
+    const encodedTitle = encodeURIComponent(title ?? '목적지');
+    const webUrl = `https://map.kakao.com/link/to/${encodedTitle},${lat},${lng}`;
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    if (!isMobile) {
+      window.open(webUrl, '_blank');
+      return;
+    }
+
+    // 모바일: 카카오 내비앱 시도 (WGS84 좌표계)
+    const naviUrl = `kakaonavi://navigate?name=${encodedTitle}&x=${lng}&y=${lat}&coord_type=wgs84`;
+    // 앱 미설치 시 브라우저는 아무 반응 없음 → 1.5s 후에도 페이지 보이면 웹으로 폴백
+    window.location.href = naviUrl;
+    window.setTimeout(() => {
+      if (document.visibilityState !== 'hidden') {
+        window.location.href = webUrl;
+      }
+    }, 1500);
+  }
+
   // 저장 토글: 미저장 → 저장 / 저장됨 → 취소
-  // 백엔드 API 는 팀 #13(bucket-lists) 머지 전까지 500 이라 UI 상태만 낙관적 갱신하고
-  // best-effort 로 mapApi 호출 (실패 무시). C2 에서 팀 스펙(/bucket-lists)에 맞춰 실호출로 교체.
+  // 백엔드 API 는 팀 bucket-lists 담당의 GET/DELETE/checkin 준비 전까지 500 이라 UI 상태만 낙관적 갱신하고
+  // best-effort 로 mapApi 호출 (실패 무시). 이슈 #12 에서 팀 스펙(/bucket-lists)에 맞춰 실호출로 교체.
   async function onSave() {
     if (!selected) return;
     const id = selected.id;
@@ -397,6 +463,7 @@ export function useMapPage() {
     onQuickPick,
     onLocate,
     onFindRoute,
+    onOpenKakaoNavi,
     onSave,
     onCheckoff,
     closeSheet: () => setSelected(null),
