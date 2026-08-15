@@ -108,8 +108,8 @@ export const fetchRecommend = (genre, lat, lng, radius) =>
     .then(unwrap)
     .then((list) => (list ?? []).map(toRecommendPlace));
 
-// 버킷/체크인 — 팀 #13 담당(/api/v1/bucket-lists) 머지 전까지는 실패 허용 (호출부에서 catch 됨)
-// C2 이슈에서 팀 스펙(/bucket-lists)으로 재작성 예정
+// 버킷/체크인 — 팀 bucket-lists 담당의 GET/DELETE/checkin 준비 전까지는 실패 허용 (호출부에서 catch)
+// 준비되면 이슈 #12 에서 팀 스펙(/bucket-lists)으로 재작성 예정
 export const fetchBuckets = (completed) =>
   client
     .get('/api/v1/bucket', { params: completed != null ? { completed } : {} })
