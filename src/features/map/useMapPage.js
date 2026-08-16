@@ -370,32 +370,56 @@ export function useMapPage() {
     }, 1500);
   }
 
+  // 저장 토글: 미저장 → 저장 / 저장됨 → 취소
+  // 백엔드 API 는 팀 bucket-lists 담당의 GET/DELETE/checkin 준비 전까지 500 이라 UI 상태만 낙관적 갱신하고
+  // best-effort 로 mapApi 호출 (실패 무시). 이슈 #12 에서 팀 스펙(/bucket-lists)에 맞춰 실호출로 교체.
   async function onSave() {
-    if (!selected || selected.lat == null || selected.lng == null) return;
-    try {
-      const res = await mapApi.createBucket({
-        contentId: selected.id,
+    if (!selected) return;
+    const id = selected.id;
+    const wasSaved = saved.includes(id) || selected.inBucket;
+    if (wasSaved) {
+      setSaved((prev) => prev.filter((x) => x !== id));
+      toast('저장 취소');
+      mapApi.deleteBucket(id).catch(() => {});
+      return;
+    }
+    setSaved((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    toast.success('저장 완료 🔖');
+    mapApi
+      .createBucket({
+        contentId: id,
         contentTypeId: selected.contentTypeId ?? undefined,
         title: selected.title,
         lat: selected.lat,
         lng: selected.lng,
         thumbnail: selected.thumbnail ?? undefined,
         addr: selected.addr ?? undefined,
-      });
-      setSaved((prev) => (prev.includes(res.contentId) ? prev : [...prev, res.contentId]));
-      if (res.duplicated) toast('이미 저장됨');
-      else toast.success('저장 완료 🔖');
-    } catch {
-      toast.error('저장 실패 (백엔드 확인)');
-    }
+      })
+      .catch(() => {});
   }
 
+  // 방문 인증 (checkin): 100m 이내 도착 시 그린 마커/뱃지로 마킹.
+  // 팀 #13(bucket-lists) checkin API 없어도 프론트에서 haversine 자체 검증으로 동작.
+  // API 생기면 best-effort 로 함께 호출 → 서버측 verify 결과로 대체.
   async function onCheckoff() {
     if (!selected || selected.lat == null || selected.lng == null) return;
     const me = await ensureMyLoc();
     if (!me) return;
-    try {
-      const res = await mapApi.checkin({
+    const distanceM = haversineMeters(me.lat, me.lng, selected.lat, selected.lng);
+    if (distanceM > 100) {
+      toast(`100m 이내에서만 인증 가능 (약 ${Math.round(distanceM)}m 떨어짐)`);
+      return;
+    }
+    const v = visitedRef.current.includes(selected.id)
+      ? visitedRef.current
+      : [...visitedRef.current, selected.id];
+    visitedRef.current = v;
+    setVisited(v);
+    renderMarkers(places);
+    toast.success('방문 인증 완료! 🎉');
+    // 서버 API 붙으면 best-effort 로 통보 (실패해도 UI 는 이미 반영)
+    mapApi
+      .checkin({
         contentId: selected.id,
         placeLat: selected.lat,
         placeLng: selected.lng,
@@ -403,21 +427,19 @@ export function useMapPage() {
         userLng: me.lng,
         title: selected.title,
         contentTypeId: selected.contentTypeId ?? undefined,
-      });
-      if (res.verified) {
-        const v = visitedRef.current.includes(selected.id)
-          ? visitedRef.current
-          : [...visitedRef.current, selected.id];
-        visitedRef.current = v;
-        setVisited(v);
-        renderMarkers(places);
-        toast.success(`방문 인증 완료! 🎉 (${res.visitCount ?? 1}번째 방문)`);
-      } else {
-        toast(`장소 근처에서 인증 가능 (약 ${Math.round(res.distanceM)}m)`);
-      }
-    } catch {
-      toast.error('인증 실패');
-    }
+      })
+      .catch(() => {});
+  }
+
+  function haversineMeters(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+    const toRad = (d) => (d * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
   return {

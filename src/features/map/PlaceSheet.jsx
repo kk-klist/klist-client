@@ -12,6 +12,7 @@ function cleanHtml(s) {
 }
 
 // 장소 상세 바텀시트 (F-15~F-20)
+// 저장 버튼 = 토글 (저장↔저장취소). 방문 인증 = 100m 이내 도착 시 그린 마커 + 뱃지.
 export function PlaceSheet({
   place,
   detail,
@@ -33,6 +34,11 @@ export function PlaceSheet({
   const useTime = cleanHtml(detail?.useTime);
   const overview = cleanHtml(detail?.overview);
   const inBucket = saved || place.inBucket;
+  // 저장 버튼 스타일/라벨은 toggle 상태로 결정
+  const saveLabel = inBucket ? '↩ 저장취소' : '🔖 저장';
+  const saveBtnClass = inBucket
+    ? 'bg-white text-primary border border-primary'
+    : 'bg-primary text-white';
 
   return (
     <div
@@ -65,13 +71,13 @@ export function PlaceSheet({
             <h2 className="my-0.5 text-lg font-bold">{title}</h2>
             {visited && (
               <span className="rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-bold text-success">
-                방문완료
+                방문 완료
               </span>
             )}
           </div>
-          {inBucket && (
+          {inBucket && !visited && (
             <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-bold text-primary">
-              On your bucket list
+              내 저장 목록
             </span>
           )}
 
@@ -100,30 +106,31 @@ export function PlaceSheet({
           onClick={onFindRoute}
           disabled={routing}
         >
-          {routing ? '경로 탐색…' : '🧭 Find Route'}
+          {routing ? '경로 탐색…' : '🧭 길찾기'}
         </button>
         <button
           type="button"
           className={cn(
-            'flex-1 rounded-xl py-3 text-[13px] font-bold text-white disabled:opacity-55',
-            saved ? 'bg-success' : 'bg-primary',
+            'flex-1 rounded-xl py-3 text-[13px] font-bold disabled:opacity-55',
+            saveBtnClass,
           )}
           onClick={onSave}
-          disabled={saved}
         >
-          {saved ? '✓ Saved' : '🔖 Save'}
+          {saveLabel}
         </button>
-        <button
-          type="button"
-          className={cn(
-            'flex-1 rounded-xl py-3 text-[13px] font-bold text-white disabled:opacity-55',
-            visited ? 'bg-success' : 'bg-primary',
-          )}
-          onClick={onCheckoff}
-          disabled={visited}
-        >
-          {visited ? '✓ Visited' : '📌 Check off'}
-        </button>
+        {onCheckoff && (
+          <button
+            type="button"
+            className={cn(
+              'flex-1 rounded-xl py-3 text-[13px] font-bold text-white disabled:opacity-55',
+              visited ? 'bg-success' : 'bg-primary',
+            )}
+            onClick={onCheckoff}
+            disabled={visited}
+          >
+            {visited ? '✓ 방문 완료' : '✓ 방문 인증'}
+          </button>
+        )}
       </div>
 
       {/* 서브 액션: 카카오 내비앱 열기 (모바일=내비앱 딥링크 → 미설치 시 카카오맵 웹, 데스크톱=웹 새창) */}
