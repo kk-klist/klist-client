@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { useMapPage } from './useMapPage';
 import { SearchBar } from './SearchBar';
 import { CategoryTabs, GenreChips } from './CategoryTabs';
@@ -24,17 +23,16 @@ export default function MapPage() {
     onChangeCategory,
     onGenre,
     onLocate,
+    onFindRoute,
+    onOpenKakaoNavi,
     onSave,
     onCheckoff,
     closeSheet,
   } = useMapPage();
-  const navigate = useNavigate();
 
-  // 스펙: 길찾기 → 3.2 Kakao Navi. 선택 장소를 넘겨 Navi 화면으로 이동.
-  const handleFindRoute = () => {
-    if (!selected) return;
-    navigate('/navi', { state: { title: selected.title } });
-  };
+  // 길찾기: 지도 위에 백엔드 route API(/api/v1/route/directions) 경로를 폴리라인으로 그린다.
+  // 실패 시 useMapPage 내부에서 카카오맵 웹 딥링크로 폴백.
+  // (이전엔 /navi mockup 화면으로 navigate 했지만 실제 지도 없어서 폴리라인 방식으로 교체)
 
   return (
     <div className="absolute inset-0 overflow-hidden">
@@ -91,7 +89,8 @@ export default function MapPage() {
         visited={selectedVisited}
         routing={routing}
         onClose={closeSheet}
-        onFindRoute={handleFindRoute}
+        onFindRoute={onFindRoute}
+        onOpenKakaoNavi={onOpenKakaoNavi}
         onSave={onSave}
         onCheckoff={onCheckoff}
       />
