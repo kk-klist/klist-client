@@ -24,6 +24,7 @@ export default function MapPage() {
     onGenre,
     onLocate,
     onFindRoute,
+    onOpenKakaoNavi,
     onSave,
     onCheckoff,
     closeSheet,
@@ -89,6 +90,7 @@ export default function MapPage() {
         routing={routing}
         onClose={closeSheet}
         onFindRoute={onFindRoute}
+        onOpenKakaoNavi={onOpenKakaoNavi}
         onSave={onSave}
         onCheckoff={onCheckoff}
       />
