@@ -1,5 +1,6 @@
 import { cn } from '@/shared/utils/cn';
 import { WeatherOutfitCard } from './WeatherOutfitCard';
+import { NearbyRecommendSection } from './NearbyRecommendSection';
 
 // ═══════════════════════════════════════════════════════════════
 // [디자인 깡통 · 예시 파일] 홈 — 담당: 홈 담당자
@@ -11,32 +12,8 @@ import { WeatherOutfitCard } from './WeatherOutfitCard';
 //    ② 다른 기능 폴더(features/*) import 금지
 //    → 자세한 규칙: docs/디자인_기준문서.md, docs/프론트엔드_기준문서.md
 //
-// TODO(담당자): 진행률/근처 체크인/날씨/근처 추천/버킷 미리보기 실데이터 연동
+// TODO(담당자): 진행률/근처 체크인/버킷 미리보기 실데이터 연동
 // ═══════════════════════════════════════════════════════════════
-
-const NEARBY_CARDS = [
-  {
-    cat: 'K-BEAUTY',
-    place: 'Myeongdong',
-    title: 'Get a Personal Color analysis',
-    dist: '350 m',
-    grad: 'kb-grad-kbeauty',
-  },
-  {
-    cat: 'K-FOOD',
-    place: 'Myeongdong',
-    title: 'Eat tteokbokki in Myeongdong',
-    dist: '400 m',
-    grad: 'kb-grad-kfood',
-  },
-  {
-    cat: 'K-POP',
-    place: 'Hongdae',
-    title: 'Watch street busking',
-    dist: '1.2 km',
-    grad: 'kb-grad-kpop',
-  },
-];
 
 const BUCKET_PREVIEW = [
   {
@@ -127,30 +104,7 @@ export default function HomePage() {
       <WeatherOutfitCard />
 
       {/* Do it now · near you */}
-      <section>
-        <div className="flex items-center justify-between">
-          <h2 className="kb-section">Do it now · near you</h2>
-          <span className="rounded-full bg-primary-soft px-2.5 py-1 text-[11px] font-extrabold text-primary">
-            LIVE
-          </span>
-        </div>
-        <div className="no-scrollbar -mx-5 mt-3 flex gap-3 overflow-x-auto px-5">
-          {NEARBY_CARDS.map((c) => (
-            <div key={c.title} className="w-44 shrink-0">
-              <div className={cn('relative h-40 rounded-thumb p-3', c.grad)}>
-                <span className="rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-extrabold tracking-wider text-white">
-                  {c.cat}
-                </span>
-                <p className="absolute bottom-3 left-3 text-[15px] font-extrabold text-white">
-                  {c.place}
-                </p>
-              </div>
-              <p className="mt-2 text-[14px] font-bold leading-snug">{c.title}</p>
-              <p className="mt-0.5 text-[12px] text-muted-foreground">📍 {c.dist}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <NearbyRecommendSection />
 
       {/* My bucket list 미리보기 */}
       <section>
