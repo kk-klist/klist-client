@@ -3,7 +3,8 @@ import { useLocation } from 'react-router-dom';
 import { toast } from '@/shared/utils/toast';
 import { useKakaoLoader, getKakao } from './useKakaoLoader';
 import * as mapApi from './mapApi';
-import { DEFAULT_CENTER, QUICK_PLACES, radiusForLevel, getCurrentPosition, GEO_ERROR } from './geo';
+import { DEFAULT_CENTER, QUICK_PLACES, radiusForLevel } from './geo';
+import { getCurrentPosition, GEO_ERROR } from '@/shared/utils/geo';
 import { PURPLE_PIN, TEAL_PIN, MY_DOT } from './pins';
 import { CATEGORIES } from './mapConstants';
 
