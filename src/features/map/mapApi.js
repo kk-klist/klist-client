@@ -70,11 +70,13 @@ function toTourDetail(d) {
 }
 
 // 조회 (fetchXxx)
+// ⚠ /api/v1/tour/nearby 는 PageResponse{content,hasNext,totalPages,totalElements} 로 응답한다.
+// 지도는 페이지네이션 없이 첫 페이지(기본 size=50)만 써서 기존 동작을 유지한다.
 export const fetchNearby = (lat, lng, radius, category, lang = 'ko') =>
   client
     .get('/api/v1/tour/nearby', { params: { lat, lng, radius, category, lang } })
     .then(unwrap)
-    .then((list) => (list ?? []).map(toTourPlace));
+    .then((page) => (page?.content ?? []).map(toTourPlace));
 
 export const fetchPlacesByKeyword = (keyword, lang = 'ko') =>
   client
