@@ -5,7 +5,10 @@ import { refreshAccessToken } from '@/features/auth/authApi';
 
 export function useAuthRestore() {
   const dispatch = useDispatch();
-  const [isRestoring, setIsRestoring] = useState(() => !!localStorage.getItem('refreshToken'));
+  const [isRestoring, setIsRestoring] = useState(() => {
+    const isOAuthCallback = window.location.pathname === '/oauth/callback';
+    return !isOAuthCallback && !!localStorage.getItem('refreshToken');
+  });
 
   useEffect(() => {
     const rt = localStorage.getItem('refreshToken');

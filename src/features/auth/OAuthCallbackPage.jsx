@@ -15,6 +15,8 @@ export default function OAuthCallbackPage() {
     const accessToken = hashParams.get('accessToken');
     const refreshToken = hashParams.get('refreshToken');
 
+    if (!accessToken || !refreshToken) return;
+
     localStorage.setItem('refreshToken', refreshToken);
     dispatch(setCredentials({ accessToken, user: null }));
     navigate('/home', { replace: true });
