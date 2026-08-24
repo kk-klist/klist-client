@@ -4,7 +4,7 @@ import { getCurrentPosition } from '@/shared/utils/geo';
 
 const NEARBY_RADIUS_METERS = 3000;
 const PAGE_SIZE = 10;
-const INITIAL_PAGE_PARAM = { tourPage: null, recommendAll: null, recommendOffset: 0 };
+const INITIAL_PAGE_PARAM = { all: null, offset: 0 };
 
 const unwrap = (res) => res?.data;
 
@@ -44,47 +44,73 @@ const fetchRecommend = (lat, lng, radius = NEARBY_RADIUS_METERS) =>
     .then(unwrap)
     .then((list) => (list ?? []).map(toRecommendPlace));
 
-// ⚠ /api/v1/tour/nearby 는 PageResponse{content,hasNext,totalPages,totalElements} 로 응답한다 (page 1부터 시작).
-const fetchNearbyTourPage = (lat, lng, page, radius = NEARBY_RADIUS_METERS, size = PAGE_SIZE) =>
+// ⚠ /api/v1/tour/nearby 응답 모양이 배열 ↔ PageResponse{content,...} 사이를 계속 오가서,
+// 어느 쪽으로 와도 배열을 뽑아내도록 방어적으로 파싱한다. page/size 는 서버가 무시할 수 있어
+// 신뢰하지 않고, 받은 걸 통째로 client 에서 PAGE_SIZE 단위로 잘라서 보여준다.
+const fetchNearbyTourAll = (lat, lng, radius = NEARBY_RADIUS_METERS) =>
   client
-    .get('/api/v1/tour/nearby', { params: { lat, lng, radius, page, size } })
+    .get('/api/v1/tour/nearby', { params: { lat, lng, radius } })
     .then(unwrap)
-    .then((res) => ({
-      items: (res?.content ?? []).map(toTourPlace),
-      hasNext: res?.hasNext ?? false,
-    }));
+    .then((res) => (Array.isArray(res) ? res : (res?.content ?? [])).map(toTourPlace));
 
-// recommend 는 백엔드에 page/size 파라미터가 없어 한 번에 전체를 반환한다.
+/** TourDetail — 상세 다이얼로그용 (images/overview/useTime/restDate 포함) */
+function toPlaceDetail(d) {
+  return {
+    id: d.contentId,
+    contentTypeId: d.contentTypeId,
+    title: d.title,
+    lat: d.latitude,
+    lng: d.longitude,
+    thumbnail: d.imageUrl,
+    addr: d.address,
+    overview: d.overview,
+    useTime: d.useTime,
+    restDate: d.restDate,
+    images: d.images ?? [],
+  };
+}
+
+const fetchPlaceDetail = (contentId, contentTypeId, lang = 'ko') =>
+  client
+    .get(`/api/v1/tour/detail/${encodeURIComponent(contentId)}`, {
+      params: { contentTypeId, lang },
+    })
+    .then(unwrap)
+    .then((d) => (d ? toPlaceDetail(d) : null));
+
+export function usePlaceDetailQuery(contentId, contentTypeId) {
+  return useQuery({
+    queryKey: ['placeDetail', contentId, contentTypeId],
+    queryFn: () => fetchPlaceDetail(contentId, contentTypeId),
+    enabled: !!contentId,
+  });
+}
+
+// recommend/tour 둘 다 백엔드가 페이지네이션을 보장해주지 않아 한 번에 전체를 받아오는 경우가 있다.
 // 그대로 다 보여주면 "한꺼번에 다 로드되는" 느낌이 나므로, 받아온 전체 배열을
-// pageParam(recommendAll/recommendOffset)에 담아 클라이언트에서 PAGE_SIZE 단위로 잘라서 보여준다.
-function sliceRecommend(recommendAll, offset) {
-  const items = recommendAll.slice(offset, offset + PAGE_SIZE);
+// pageParam(all/offset)에 담아 클라이언트에서 PAGE_SIZE 단위로 잘라서 보여준다.
+function sliceAll(all, offset) {
+  const items = all.slice(offset, offset + PAGE_SIZE);
   const nextOffset = offset + PAGE_SIZE;
   return {
     items,
-    nextPageParam:
-      nextOffset < recommendAll.length ? { recommendAll, recommendOffset: nextOffset } : null,
+    nextPageParam: nextOffset < all.length ? { all, offset: nextOffset } : null,
   };
 }
 
 async function fetchNearbyPage(lat, lng, pageParam) {
-  if (pageParam.recommendAll) {
-    return sliceRecommend(pageParam.recommendAll, pageParam.recommendOffset);
+  if (pageParam.all) {
+    return sliceAll(pageParam.all, pageParam.offset);
   }
 
-  if (pageParam.tourPage == null) {
-    // 최초 페이지: K-컬처 큐레이션(recommend)을 우선 시도한다.
-    const recommended = await fetchRecommend(lat, lng);
-    if (recommended.length > 0) {
-      return sliceRecommend(recommended, 0);
-    }
-    // 큐레이션 반경 밖(지방 등)이면 이후부터 tour/nearby 서버 페이지네이션으로 전환
-    const { items, hasNext } = await fetchNearbyTourPage(lat, lng, 1);
-    return { items, nextPageParam: hasNext ? { tourPage: 2 } : null };
+  // 최초 페이지: K-컬처 큐레이션(recommend)을 우선 시도한다.
+  const recommended = await fetchRecommend(lat, lng);
+  if (recommended.length > 0) {
+    return sliceAll(recommended, 0);
   }
-
-  const { items, hasNext } = await fetchNearbyTourPage(lat, lng, pageParam.tourPage);
-  return { items, nextPageParam: hasNext ? { tourPage: pageParam.tourPage + 1 } : null };
+  // 큐레이션 반경 밖(지방 등)이면 장르 무관 일반 근처 검색으로 대체
+  const tourAll = await fetchNearbyTourAll(lat, lng);
+  return sliceAll(tourAll, 0);
 }
 
 export function useNearbyRecommendQuery() {

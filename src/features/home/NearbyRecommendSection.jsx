@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { Spinner } from '@/shared/components/Spinner';
 import { ErrorMessage } from '@/shared/components/ErrorMessage';
 import { EmptyState } from '@/shared/components/EmptyState';
 import { useNearbyRecommendQuery } from './homeApi';
+import { PlaceDetailDialog } from './PlaceDetailDialog';
 
 const GENRE_META = {
   'K-pop': { label: 'K-POP', grad: 'kb-grad-kpop' },
@@ -23,6 +25,7 @@ const SCROLL_END_BUFFER_PX = 200;
 export function NearbyRecommendSection() {
   const { places, isLoading, isError, hasNextPage, isFetchingNextPage, fetchNextPage } =
     useNearbyRecommendQuery();
+  const [selectedPlace, setSelectedPlace] = useState(null);
 
   function handleScroll(e) {
     if (!hasNextPage || isFetchingNextPage) return;
@@ -33,12 +36,7 @@ export function NearbyRecommendSection() {
 
   return (
     <section>
-      <div className="flex items-center justify-between">
-        <h2 className="kb-section">Do it now · near you</h2>
-        <span className="rounded-full bg-primary-soft px-2.5 py-1 text-[11px] font-extrabold text-primary">
-          LIVE
-        </span>
-      </div>
+      <h2 className="kb-section">Do it now · near you</h2>
 
       {isLoading && <Spinner />}
       {!isLoading && isError && <ErrorMessage message="근처 추천을 불러올 수 없어요." />}
@@ -54,7 +52,12 @@ export function NearbyRecommendSection() {
             const { label, grad } = GENRE_META[p.genre] ?? DEFAULT_GENRE_META;
             const dist = formatDistance(p.dist);
             return (
-              <div key={p.id} className="w-44 shrink-0">
+              <button
+                type="button"
+                key={p.id}
+                className="w-44 shrink-0 text-left"
+                onClick={() => setSelectedPlace(p)}
+              >
                 <div
                   className={cn(
                     'relative h-40 overflow-hidden rounded-thumb',
@@ -75,7 +78,7 @@ export function NearbyRecommendSection() {
                 </div>
                 <p className="mt-2 truncate text-[14px] font-bold leading-snug">{p.title}</p>
                 {dist && <p className="mt-0.5 text-[12px] text-muted-foreground">📍 {dist}</p>}
-              </div>
+              </button>
             );
           })}
           {isFetchingNextPage && (
@@ -85,6 +88,12 @@ export function NearbyRecommendSection() {
           )}
         </div>
       )}
+
+      <PlaceDetailDialog
+        place={selectedPlace}
+        open={!!selectedPlace}
+        onOpenChange={(o) => !o && setSelectedPlace(null)}
+      />
     </section>
   );
 }
