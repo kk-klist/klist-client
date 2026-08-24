@@ -31,6 +31,11 @@ client.interceptors.response.use(
   (response) => response.data,
   async (error) => {
     if (error.response?.status === 401 && !error.config._retry) {
+      if (error.config.url?.includes('/auth/refresh')) {
+        authHandlers.onUnauthorized();
+        return Promise.reject(error.response.data);
+      }
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           pendingRequests.push({ resolve, reject });
@@ -54,6 +59,7 @@ client.interceptors.response.use(
         pendingRequests.forEach(({ reject }) => reject());
         pendingRequests = [];
         authHandlers.onUnauthorized();
+        return Promise.reject(error.response?.data ?? error);
       } finally {
         isRefreshing = false;
       }
