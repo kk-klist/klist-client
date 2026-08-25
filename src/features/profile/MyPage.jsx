@@ -33,45 +33,51 @@ export default function MyPage() {
   return (
     <div className="kb-page">
       {/* 프로필 */}
-      <header className="kb-card flex items-center gap-4 p-5">
-        {isAuthenticated ? (
-          user?.profileImageUrl ? (
-            <img
-              src={user.profileImageUrl}
-              alt=""
-              className="h-16 w-16 rounded-full object-cover ring-2 ring-black/80"
-            />
-          ) : (
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-gradient text-2xl font-extrabold text-white ring-2 ring-black/80">
-              {user?.nickname?.[0] ?? '?'}
-            </span>
-          )
-        ) : (
-          <span className="h-16 w-16 animate-pulse rounded-full bg-track ring-2 ring-black/20" />
-        )}
-        <div className="space-y-1.5">
+      <section>
+        <div className="kb-card flex items-center gap-4 p-5">
           {isAuthenticated ? (
-            <>
-              <h1 className="text-[24px] font-extrabold tracking-tight">{user?.nickname}</h1>
-              <p className="flex items-center gap-2 text-[18px]" aria-label="국가 및 선호 언어">
-                <span>{getCountryFlagEmoji(user?.nationality)}</span>
-                <span className="text-[14px] font-semibold text-muted-foreground">{langLabel}</span>
-              </p>
-            </>
+            user?.profileImageUrl ? (
+              <img
+                src={user.profileImageUrl}
+                alt=""
+                className="h-16 w-16 rounded-full object-cover ring-2 ring-black/80"
+              />
+            ) : (
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-track">
+                <ProfileIcon />
+              </span>
+            )
           ) : (
-            <>
-              <p className="text-[14px] font-semibold text-muted-foreground">로그인하고 시작해요</p>
-              <button
-                type="button"
-                className="rounded-full bg-primary px-4 py-1.5 text-[13px] font-bold text-white"
-                onClick={() => navigate('/login')}
-              >
-                로그인
-              </button>
-            </>
+            <span className="h-16 w-16 animate-pulse rounded-full bg-track" />
           )}
+          <div className="space-y-1.5">
+            {isAuthenticated ? (
+              <>
+                <h1 className="text-[24px] font-extrabold tracking-tight">{user?.nickname}</h1>
+                <p className="flex items-center gap-2 text-[18px]" aria-label="국가 및 선호 언어">
+                  <span>{getCountryFlagEmoji(user?.nationality)}</span>
+                  <span className="text-[14px] font-semibold text-muted-foreground">
+                    {langLabel}
+                  </span>
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-[14px] font-semibold text-muted-foreground">
+                  로그인하고 시작해요
+                </p>
+                <button
+                  type="button"
+                  className="rounded-full bg-primary px-4 py-1.5 text-[13px] font-bold text-white"
+                  onClick={() => navigate('/login')}
+                >
+                  로그인
+                </button>
+              </>
+            )}
+          </div>
         </div>
-      </header>
+      </section>
 
       {/* My tickets (스펙 2.5 — 항공권 카드) */}
       <section>
@@ -176,6 +182,24 @@ export default function MyPage() {
         isPending={isLoggingOut}
       />
     </div>
+  );
+}
+
+function ProfileIcon() {
+  return (
+    <svg
+      width="32"
+      height="32"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      className="text-muted-foreground"
+    >
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" />
+    </svg>
   );
 }
 
