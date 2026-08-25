@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { selectCurrentUser, selectIsAuthenticated } from '@/features/auth/authSlice';
 import { useLogoutMutation } from '@/features/auth/authApi';
+import { SUPPORTED_LANGUAGES } from '@/shared/constants/locationOptions';
 import { cn } from '@/shared/utils/cn';
 import { getCountryFlagEmoji } from './countryFlag';
 import { LoginRequiredDialog } from './LoginRequiredDialog';
@@ -15,6 +16,9 @@ export default function MyPage() {
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const { mutate: logout, isPending: isLoggingOut } = useLogoutMutation();
+
+  const langLabel =
+    SUPPORTED_LANGUAGES.find((l) => l.value === user?.preferredLanguage)?.label ?? '-';
 
   const guardedNavigate = (path) => {
     if (isAuthenticated) navigate(path);
@@ -29,28 +33,29 @@ export default function MyPage() {
   return (
     <div className="kb-page">
       {/* 프로필 */}
-      <header className="flex items-center gap-4 pt-1">
+      <header className="kb-card flex items-center gap-4 p-5">
         {isAuthenticated ? (
           user?.profileImageUrl ? (
             <img
               src={user.profileImageUrl}
               alt=""
-              className="h-16 w-16 rounded-full object-cover shadow-float"
+              className="h-16 w-16 rounded-full object-cover ring-2 ring-black/80"
             />
           ) : (
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-gradient text-2xl font-extrabold text-white shadow-float">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-gradient text-2xl font-extrabold text-white ring-2 ring-black/80">
               {user?.nickname?.[0] ?? '?'}
             </span>
           )
         ) : (
-          <span className="h-16 w-16 animate-pulse rounded-full bg-track" />
+          <span className="h-16 w-16 animate-pulse rounded-full bg-track ring-2 ring-black/20" />
         )}
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {isAuthenticated ? (
             <>
               <h1 className="text-[24px] font-extrabold tracking-tight">{user?.nickname}</h1>
-              <p className="text-[20px]" aria-label="국가">
-                {getCountryFlagEmoji(user?.nationality)}
+              <p className="flex items-center gap-2 text-[18px]" aria-label="국가 및 선호 언어">
+                <span>{getCountryFlagEmoji(user?.nationality)}</span>
+                <span className="text-[14px] font-semibold text-muted-foreground">{langLabel}</span>
               </p>
             </>
           ) : (
@@ -138,7 +143,12 @@ export default function MyPage() {
       <section>
         <h2 className="kb-section">Settings</h2>
         <div className="kb-card mt-3 divide-y divide-line">
-          <SettingRow icon="A문" label="Language" value="English" valueClass="text-primary" />
+          <SettingRow
+            icon="A문"
+            label="Language"
+            value={isAuthenticated ? langLabel : '-'}
+            valueClass="text-primary"
+          />
           <SettingRow
             icon="🔔"
             label="알림 설정"
