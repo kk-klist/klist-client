@@ -22,6 +22,7 @@ export function PlaceSheet({
   routing,
   onClose,
   onFindRoute,
+  onOpenKakaoNavi,
   onSave,
   onCheckoff,
 }) {
@@ -131,6 +132,17 @@ export function PlaceSheet({
           </button>
         )}
       </div>
+
+      {/* 서브 액션: 카카오 내비앱 열기 (모바일=내비앱 딥링크 → 미설치 시 카카오맵 웹, 데스크톱=웹 새창) */}
+      {onOpenKakaoNavi && (
+        <button
+          type="button"
+          className="mt-2 w-full rounded-xl border border-primary py-2.5 text-[13px] font-bold text-primary"
+          onClick={onOpenKakaoNavi}
+        >
+          🚗 카카오 내비앱에서 경로 안내
+        </button>
+      )}
     </div>
   );
 }

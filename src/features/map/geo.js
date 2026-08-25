@@ -13,17 +13,3 @@ export function radiusForLevel(level) {
   const table = { 1: 250, 2: 500, 3: 1000, 4: 1500, 5: 2500, 6: 4000, 7: 8000, 8: 16000 };
   return Math.min(table[level] ?? 2000, 20000);
 }
-
-export function getCurrentPosition() {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error('geolocation unsupported'));
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      (err) => reject(err),
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 },
-    );
-  });
-}
