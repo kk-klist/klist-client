@@ -2,15 +2,19 @@ import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { selectCurrentUser, selectIsAuthenticated } from '@/features/auth/authSlice';
+import { useLogoutMutation } from '@/features/auth/authApi';
 import { cn } from '@/shared/utils/cn';
 import { getCountryFlagEmoji } from './countryFlag';
 import { LoginRequiredDialog } from './LoginRequiredDialog';
+import { LogoutConfirmDialog } from './LogoutConfirmDialog';
 
 export default function MyPage() {
   const navigate = useNavigate();
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const user = useSelector(selectCurrentUser);
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const { mutate: logout, isPending: isLoggingOut } = useLogoutMutation();
 
   const guardedNavigate = (path) => {
     if (isAuthenticated) navigate(path);
@@ -142,15 +146,30 @@ export default function MyPage() {
             valueClass="text-muted-foreground"
             onClick={handleNotificationClick}
           />
+          {isAuthenticated && (
+            <SettingRow
+              icon="🚪"
+              label="로그아웃"
+              labelClass="text-destructive"
+              value=""
+              onClick={() => setLogoutDialogOpen(true)}
+            />
+          )}
         </div>
       </section>
 
       <LoginRequiredDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} />
+      <LogoutConfirmDialog
+        open={logoutDialogOpen}
+        onOpenChange={setLogoutDialogOpen}
+        onConfirm={logout}
+        isPending={isLoggingOut}
+      />
     </div>
   );
 }
 
-function SettingRow({ icon, label, value, valueClass, onClick }) {
+function SettingRow({ icon, label, labelClass, value, valueClass, onClick }) {
   return (
     <button
       type="button"
@@ -160,7 +179,7 @@ function SettingRow({ icon, label, value, valueClass, onClick }) {
       <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-track text-[13px] font-bold">
         {icon}
       </span>
-      <p className="flex-1 text-[15px] font-bold">{label}</p>
+      <p className={cn('flex-1 text-[15px] font-bold', labelClass)}>{label}</p>
       <p className={cn('text-[14px] font-bold', valueClass)}>{value}</p>
     </button>
   );

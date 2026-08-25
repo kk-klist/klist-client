@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { setCredentials, selectIsAuthenticated } from '@/features/auth/authSlice';
+import { setCredentials, setUser, selectIsAuthenticated } from '@/features/auth/authSlice';
 import { useMeQuery } from '@/features/auth/authApi';
 
 export default function OAuthCallbackPage() {
@@ -27,8 +27,9 @@ export default function OAuthCallbackPage() {
 
   useEffect(() => {
     if (!me) return;
+    dispatch(setUser(me));
     navigate(me.isOnboarding ? '/home' : '/onboarding', { replace: true });
-  }, [me, navigate]);
+  }, [me, dispatch, navigate]);
 
   if (error) {
     return (
