@@ -30,7 +30,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-surface">
+    <div className="flex min-h-full flex-col">
       <header className="px-6 pt-14 pb-6">
         <h1 className="text-2xl font-bold text-foreground">프로필 설정</h1>
         <p className="mt-1 text-sm text-muted-foreground">

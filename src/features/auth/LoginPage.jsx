@@ -1,6 +1,6 @@
 export default function LoginPage() {
   return (
-    <div className="flex h-dvh flex-col items-center justify-center gap-8 bg-surface px-8">
+    <div className="flex h-full flex-col items-center justify-center gap-8 px-8">
       <div className="text-center">
         <h1 className="text-3xl font-extrabold text-primary">Klist+</h1>
         <p className="mt-2 text-sm text-muted-foreground">K-컬처 버킷리스트 여행 지도</p>

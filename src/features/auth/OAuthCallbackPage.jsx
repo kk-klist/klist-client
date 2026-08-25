@@ -32,7 +32,7 @@ export default function OAuthCallbackPage() {
 
   if (error) {
     return (
-      <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-surface px-8 text-center">
+      <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">
         <p className="text-sm text-muted-foreground">로그인에 실패했습니다.</p>
         <a href="/login" className="text-xs text-primary underline">
           로그인으로 돌아가기
