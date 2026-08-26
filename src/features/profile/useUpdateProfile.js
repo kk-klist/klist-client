@@ -1,9 +1,9 @@
+import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { selectCurrentUser } from '@/features/auth/authSlice';
-import { setUser } from '@/features/auth/authSlice';
+import { selectCurrentUser, setUser } from '@/features/auth/authSlice';
 import { profileUpdateSchema } from '@/features/profile/profileSchemas';
 import {
   useUpdateProfileMutation,
@@ -28,31 +28,29 @@ export function useUpdateProfile() {
   const { mutateAsync: updateProfileImage, isPending: isImagePending } =
     useUpdateProfileImageMutation();
 
+  const profileImage = form.watch('profileImage');
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (!profileImage) return;
+
+    updateProfileImage({ profileImage }).then((result) => {
+      dispatch(setUser({ ...user, profileImageUrl: result.profileImageUrl }));
+    });
+  }, [profileImage]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const isPending = isProfilePending || isImagePending;
 
   async function onSubmit(data) {
-    const { nickname, nationality, profileImage } = data;
-    let nextProfileImageUrl = user?.profileImageUrl;
+    const { nickname, nationality } = data;
 
     try {
-      if (form.formState.dirtyFields.profileImage) {
-        const result = await updateProfileImage({ profileImage });
-        nextProfileImageUrl = result.profileImageUrl;
-      }
-
-      if (form.formState.dirtyFields.nickname || form.formState.dirtyFields.nationality) {
-        await updateProfile({ nickname, nationality });
-      }
-
-      dispatch(
-        setUser({
-          ...user,
-          nickname,
-          nationality,
-          profileImageUrl: nextProfileImageUrl,
-        }),
-      );
-
+      await updateProfile({ nickname, nationality });
+      dispatch(setUser({ ...user, nickname, nationality }));
       navigate('/my', { replace: true });
     } catch (err) {
       if (err?.code === 'INVALID_INPUT') {
