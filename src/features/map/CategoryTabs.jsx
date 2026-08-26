@@ -4,7 +4,7 @@ import { CATEGORIES, GENRES } from './mapConstants';
 export function CategoryTabs({ active, onChange }) {
   return (
     <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5">
-      {CATEGORIES.filter((c) => c.key !== 'mylist').map((c) => (
+      {CATEGORIES.map((c) => (
         <button
           key={c.key}
           type="button"
