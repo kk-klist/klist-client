@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { toast } from '@/shared/utils/toast';
+import {
+  getSavedPlaces,
+  setSavedPlaces as writeSavedPlaces,
+} from '@/shared/utils/savedPlacesStore';
 import { useKakaoLoader, getKakao } from './useKakaoLoader';
 import * as mapApi from './mapApi';
 import { DEFAULT_CENTER, QUICK_PLACES, radiusForLevel } from './geo';
 import { getCurrentPosition, GEO_ERROR } from '@/shared/utils/geo';
-import { PURPLE_PIN, TEAL_PIN, MY_DOT } from './pins';
+import { PURPLE_PIN, RED_PIN, TEAL_PIN, MY_DOT } from './pins';
 import { CATEGORIES } from './mapConstants';
 
 // TourAPI 가 지원하는 언어 화이트리스트. 미매칭 시 기본 'ko'.
@@ -15,22 +19,6 @@ const SUPPORTED_LANGS = new Set(['ko', 'en', 'ja', 'zh-CN', 'zh-TW']);
 function resolveLang(search) {
   const raw = new URLSearchParams(search).get('lang');
   return raw && SUPPORTED_LANGS.has(raw) ? raw : 'ko';
-}
-
-// 백엔드 버킷 행 → 지도 마커용 Place
-function bucketToPlace(b) {
-  return {
-    id: b.contentId,
-    contentTypeId: b.contentTypeId,
-    title: b.title,
-    lat: b.lat,
-    lng: b.lng,
-    thumbnail: b.thumbnail,
-    addr: b.addr,
-    dist: null,
-    inBucket: true,
-    visited: b.isCompleted,
-  };
 }
 
 // 지도 페이지 유스케이스 전체(마커/검색/추천/저장/인증)를 담당하는 훅.
@@ -64,14 +52,17 @@ export function useMapPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [routing, setRouting] = useState(false);
   const [visited, setVisited] = useState([]);
-  const [saved, setSaved] = useState([]);
+  // saved(id 배열)와 savedPlaces(전체 Place)를 함께 유지. shared store 로 새로고침 시 복원.
+  // 팀 #13(bucket-lists) 조회 API 붙으면 shared/savedPlacesStore 내부만 서버 호출로 교체.
+  const [savedPlaces, setSavedPlaces] = useState(getSavedPlaces);
+  const [saved, setSaved] = useState(() => getSavedPlaces().map((p) => p.id));
   const [myLoc, setMyLoc] = useState(null);
   const [loading, setLoading] = useState(false);
   // 카카오 JS 키 미설정 여부는 env 에서 바로 계산 (effect 내 setState 회피)
   const key = import.meta.env.VITE_KAKAO_JS_KEY;
   const noKey = !key || key.startsWith('여기에');
 
-  // ---- 최초 1회: 백엔드에서 저장/방문 상태 로드 ----
+  // ---- 최초 1회: 백엔드에서 저장/방문 상태 로드 (실패 시 localStorage 값 유지) ----
   useEffect(() => {
     (async () => {
       try {
@@ -86,16 +77,21 @@ export function useMapPage() {
         visitedRef.current = v;
         setVisited(v);
       } catch {
-        /* 백엔드 미기동 시 조용히 스킵 — 지도는 동작 */
+        /* 백엔드 미기동/미구현 시 조용히 스킵 — 초기화 시 localStorage 값 이미 로드됨 */
       }
     })();
   }, []);
 
-  // 하이드레이션이 초기 렌더보다 늦게 끝나도 방문 색이 반영되게 재렌더
+  // savedPlaces 바뀔 때마다 shared store 로 지속화 (마이페이지도 이 store 소비)
+  useEffect(() => {
+    writeSavedPlaces(savedPlaces);
+  }, [savedPlaces]);
+
+  // 저장/방문 상태 하이드레이션이 초기 렌더보다 늦게 끝나도 마커 색이 반영되게 재렌더
   useEffect(() => {
     if (places.length > 0) renderMarkers(places);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visited]);
+  }, [visited, savedPlaces]);
 
   // URL ?lang= 변경 시 langRef 갱신 + 현재 카테고리 재조회 (지도가 이미 뜬 뒤에만)
   useEffect(() => {
@@ -105,20 +101,24 @@ export function useMapPage() {
   }, [lang]);
 
   // ---- 마커 렌더 (이전 마커 전부 제거 후 새로 그림) ----
+  // 3분기: 방문 완료(그린) > 저장 미방문(레드) > 미저장(보라)
   function renderMarkers(list) {
     const kakao = getKakao();
     const cl = clustererRef.current;
     if (!cl) return;
     cl.clear();
+    const savedById = new Map(savedPlaces.map((p) => [p.id, p]));
+    const visitedIds = new Set(visited);
     const markers = list
       .filter((p) => p.lat != null && p.lng != null)
       .map((p) => {
-        const isVisited = p.visited || visitedRef.current.includes(p.id);
-        const image = new kakao.maps.MarkerImage(
-          isVisited ? TEAL_PIN : PURPLE_PIN,
-          new kakao.maps.Size(30, 40),
-          { offset: new kakao.maps.Point(15, 40) },
-        );
+        const savedEntry = savedById.get(p.id);
+        const isSaved = p.inBucket || !!savedEntry;
+        const isVisited = visitedIds.has(p.id) || savedEntry?.isVisited === true;
+        const pin = isVisited ? TEAL_PIN : isSaved ? RED_PIN : PURPLE_PIN;
+        const image = new kakao.maps.MarkerImage(pin, new kakao.maps.Size(30, 40), {
+          offset: new kakao.maps.Point(15, 40),
+        });
         const marker = new kakao.maps.Marker({
           position: new kakao.maps.LatLng(p.lat, p.lng),
           image,
@@ -161,7 +161,8 @@ export function useMapPage() {
     try {
       let result = [];
       const currentLang = langRef.current;
-      if (cat.source === 'mylist') result = (await mapApi.fetchBuckets()).map(bucketToPlace);
+      // MyList 는 shared savedPlacesStore 기준 (백엔드 /bucket-lists 연동은 이슈 #12 에서 교체 예정)
+      if (cat.source === 'mylist') result = savedPlaces;
       else if (cat.source === 'recommend')
         result = await mapApi.fetchRecommend(genreRef.current ?? undefined, lat, lng);
       else if (cat.source === 'nearby')
@@ -371,32 +372,84 @@ export function useMapPage() {
     }, 1500);
   }
 
+  // 저장 토글: 미저장 → 저장 / 저장됨 → 취소
+  // 백엔드 /bucket-lists API 준비 완료 — 이슈 #12 에서 실호출로 교체 예정. 그전까지 UI 낙관적 갱신 + best-effort 호출.
   async function onSave() {
-    if (!selected || selected.lat == null || selected.lng == null) return;
-    try {
-      const res = await mapApi.createBucket({
-        contentId: selected.id,
+    if (!selected) return;
+    const id = selected.id;
+    const wasSaved =
+      saved.includes(id) || savedPlaces.some((p) => p.id === id) || selected.inBucket;
+    if (wasSaved) {
+      setSaved((prev) => prev.filter((x) => x !== id));
+      setSavedPlaces((prev) => prev.filter((p) => p.id !== id));
+      toast('저장 취소');
+      mapApi.deleteBucket(id).catch(() => {});
+      // MyList 탭이 활성이면 마커 목록 즉시 반영
+      if (activeRef.current === 'mylist') {
+        const next = savedPlaces.filter((p) => p.id !== id);
+        setPlaces(next);
+        renderMarkers(next);
+      }
+      return;
+    }
+    // 미저장 → 저장 : id 목록 + 전체 객체 둘 다 업데이트
+    setSaved((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    setSavedPlaces((prev) =>
+      prev.some((p) => p.id === id)
+        ? prev
+        : [
+            ...prev,
+            {
+              id,
+              contentTypeId: selected.contentTypeId ?? null,
+              title: selected.title,
+              lat: selected.lat,
+              lng: selected.lng,
+              thumbnail: selected.thumbnail ?? null,
+              addr: selected.addr ?? null,
+              isVisited: false,
+            },
+          ],
+    );
+    toast.success('저장 완료 🔖');
+    mapApi
+      .createBucket({
+        contentId: id,
         contentTypeId: selected.contentTypeId ?? undefined,
         title: selected.title,
         lat: selected.lat,
         lng: selected.lng,
         thumbnail: selected.thumbnail ?? undefined,
         addr: selected.addr ?? undefined,
-      });
-      setSaved((prev) => (prev.includes(res.contentId) ? prev : [...prev, res.contentId]));
-      if (res.duplicated) toast('이미 저장됨');
-      else toast.success('저장 완료 🔖');
-    } catch {
-      toast.error('저장 실패 (백엔드 확인)');
-    }
+      })
+      .catch(() => {});
   }
 
+  // 방문 인증 (checkin): 100m 이내 도착 시 그린 마커/뱃지로 마킹.
+  // 팀 #13(bucket-lists) checkin API 없어도 프론트에서 haversine 자체 검증으로 동작.
+  // API 생기면 best-effort 로 함께 호출 → 서버측 verify 결과로 대체.
   async function onCheckoff() {
     if (!selected || selected.lat == null || selected.lng == null) return;
     const me = await ensureMyLoc();
     if (!me) return;
-    try {
-      const res = await mapApi.checkin({
+    const distanceM = haversineMeters(me.lat, me.lng, selected.lat, selected.lng);
+    if (distanceM > 100) {
+      toast(`100m 이내에서만 인증 가능 (약 ${Math.round(distanceM)}m 떨어짐)`);
+      return;
+    }
+    const v = visitedRef.current.includes(selected.id)
+      ? visitedRef.current
+      : [...visitedRef.current, selected.id];
+    visitedRef.current = v;
+    setVisited(v);
+    // MyList 로 저장한 장소라면 isVisited=true 로 마킹 → 새로고침 후에도 그린 유지 (localStorage 지속)
+    setSavedPlaces((prev) =>
+      prev.map((p) => (p.id === selected.id ? { ...p, isVisited: true } : p)),
+    );
+    toast.success('방문 인증 완료! 🎉');
+    // 서버 API 붙으면 best-effort 로 통보 (실패해도 UI 는 이미 반영)
+    mapApi
+      .checkin({
         contentId: selected.id,
         placeLat: selected.lat,
         placeLng: selected.lng,
@@ -404,21 +457,19 @@ export function useMapPage() {
         userLng: me.lng,
         title: selected.title,
         contentTypeId: selected.contentTypeId ?? undefined,
-      });
-      if (res.verified) {
-        const v = visitedRef.current.includes(selected.id)
-          ? visitedRef.current
-          : [...visitedRef.current, selected.id];
-        visitedRef.current = v;
-        setVisited(v);
-        renderMarkers(places);
-        toast.success(`방문 인증 완료! 🎉 (${res.visitCount ?? 1}번째 방문)`);
-      } else {
-        toast(`장소 근처에서 인증 가능 (약 ${Math.round(res.distanceM)}m)`);
-      }
-    } catch {
-      toast.error('인증 실패');
-    }
+      })
+      .catch(() => {});
+  }
+
+  function haversineMeters(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+    const toRad = (d) => (d * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
   return {
@@ -435,7 +486,10 @@ export function useMapPage() {
     detailLoading,
     routing,
     selectedSaved: selected ? saved.includes(selected.id) : false,
-    selectedVisited: selected ? visited.includes(selected.id) : false,
+    selectedVisited: selected
+      ? visited.includes(selected.id) ||
+        savedPlaces.some((p) => p.id === selected.id && p.isVisited === true)
+      : false,
     onChangeCategory,
     onGenre,
     onSearch,
