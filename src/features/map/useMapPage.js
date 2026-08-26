@@ -138,7 +138,10 @@ export function useMapPage() {
     if (mapRef.current && p.lat != null && p.lng != null) {
       mapRef.current.panTo(new (getKakao().maps.LatLng)(p.lat, p.lng));
     }
-    if (!/^\d+$/.test(p.id)) return; // 카카오 POI/spot-N 은 TourAPI 상세 없음
+    if (!/^\d+$/.test(p.id)) return; // 카카오 POI 는 TourAPI 상세 없음
+    // 서버 버킷 항목은 contentId 가 없어 id 가 bucketListId 인 상태 → 엉뚱한 콘텐츠를 조회하게 되므로 건너뛴다.
+    // (로컬 매핑으로 contentId 가 복원된 경우에만 상세 조회가 가능하다)
+    if (p.bucketListId != null && p.id === p.bucketListId) return;
     setDetailLoading(true);
     try {
       setDetail(await mapApi.fetchPlaceDetail(p.id, p.contentTypeId ?? undefined, langRef.current));
