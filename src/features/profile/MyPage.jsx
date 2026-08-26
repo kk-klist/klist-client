@@ -50,7 +50,7 @@ export default function MyPage() {
           ) : (
             <span className="h-16 w-16 animate-pulse rounded-full bg-track" />
           )}
-          <div className="space-y-1.5">
+          <div className="flex-1 space-y-1.5">
             {isAuthenticated ? (
               <>
                 <h1 className="text-[24px] font-extrabold tracking-tight">{user?.nickname}</h1>
@@ -76,6 +76,15 @@ export default function MyPage() {
               </>
             )}
           </div>
+          {isAuthenticated && (
+            <button
+              type="button"
+              onClick={() => navigate('/profile/edit')}
+              className="rounded-full bg-track px-3 py-1.5 text-[12px] font-bold text-muted-foreground"
+            >
+              편집
+            </button>
+          )}
         </div>
       </section>
 
