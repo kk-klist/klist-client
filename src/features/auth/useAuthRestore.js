@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { setCredentials } from '@/features/auth/authSlice';
-import { refreshAccessToken } from '@/features/auth/authApi';
+import { setCredentials, setUser } from '@/features/auth/authSlice';
+import { refreshAccessToken, fetchMe } from '@/features/auth/authApi';
 
 export function useAuthRestore() {
   const dispatch = useDispatch();
@@ -17,6 +17,10 @@ export function useAuthRestore() {
     refreshAccessToken(rt)
       .then(({ accessToken }) => {
         dispatch(setCredentials({ accessToken, user: null }));
+        return fetchMe();
+      })
+      .then((me) => {
+        dispatch(setUser(me));
       })
       .catch(() => {
         localStorage.removeItem('refreshToken');

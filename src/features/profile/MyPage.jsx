@@ -2,15 +2,23 @@ import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { selectCurrentUser, selectIsAuthenticated } from '@/features/auth/authSlice';
+import { useLogoutMutation } from '@/features/auth/authApi';
+import { SUPPORTED_LANGUAGES } from '@/shared/constants/locationOptions';
 import { cn } from '@/shared/utils/cn';
 import { getCountryFlagEmoji } from './countryFlag';
 import { LoginRequiredDialog } from './LoginRequiredDialog';
+import { LogoutConfirmDialog } from './LogoutConfirmDialog';
 
 export default function MyPage() {
   const navigate = useNavigate();
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const user = useSelector(selectCurrentUser);
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const { mutate: logout, isPending: isLoggingOut } = useLogoutMutation();
+
+  const langLabel =
+    SUPPORTED_LANGUAGES.find((l) => l.value === user?.preferredLanguage)?.label ?? '-';
 
   const guardedNavigate = (path) => {
     if (isAuthenticated) navigate(path);
@@ -25,44 +33,51 @@ export default function MyPage() {
   return (
     <div className="kb-page">
       {/* 프로필 */}
-      <header className="flex items-center gap-4 pt-1">
-        {isAuthenticated ? (
-          user?.profileImageUrl ? (
-            <img
-              src={user.profileImageUrl}
-              alt=""
-              className="h-16 w-16 rounded-full object-cover shadow-float"
-            />
-          ) : (
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-gradient text-2xl font-extrabold text-white shadow-float">
-              {user?.nickname?.[0] ?? '?'}
-            </span>
-          )
-        ) : (
-          <span className="h-16 w-16 animate-pulse rounded-full bg-track" />
-        )}
-        <div className="space-y-2">
+      <section>
+        <div className="kb-card flex items-center gap-4 p-5">
           {isAuthenticated ? (
-            <>
-              <h1 className="text-[24px] font-extrabold tracking-tight">{user?.nickname}</h1>
-              <p className="text-[20px]" aria-label="국가">
-                {getCountryFlagEmoji(user?.nationality)}
-              </p>
-            </>
+            user?.profileImageUrl ? (
+              <img
+                src={user.profileImageUrl}
+                alt=""
+                className="h-16 w-16 rounded-full object-cover ring-2 ring-black/80"
+              />
+            ) : (
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-track">
+                <ProfileIcon />
+              </span>
+            )
           ) : (
-            <>
-              <p className="text-[14px] font-semibold text-muted-foreground">로그인하고 시작해요</p>
-              <button
-                type="button"
-                className="rounded-full bg-primary px-4 py-1.5 text-[13px] font-bold text-white"
-                onClick={() => navigate('/login')}
-              >
-                로그인
-              </button>
-            </>
+            <span className="h-16 w-16 animate-pulse rounded-full bg-track" />
           )}
+          <div className="space-y-1.5">
+            {isAuthenticated ? (
+              <>
+                <h1 className="text-[24px] font-extrabold tracking-tight">{user?.nickname}</h1>
+                <p className="flex items-center gap-2 text-[18px]" aria-label="국가 및 선호 언어">
+                  <span>{getCountryFlagEmoji(user?.nationality)}</span>
+                  <span className="text-[14px] font-semibold text-muted-foreground">
+                    {langLabel}
+                  </span>
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-[14px] font-semibold text-muted-foreground">
+                  로그인하고 시작해요
+                </p>
+                <button
+                  type="button"
+                  className="rounded-full bg-primary px-4 py-1.5 text-[13px] font-bold text-white"
+                  onClick={() => navigate('/login')}
+                >
+                  로그인
+                </button>
+              </>
+            )}
+          </div>
         </div>
-      </header>
+      </section>
 
       {/* My tickets (스펙 2.5 — 항공권 카드) */}
       <section>
@@ -134,7 +149,12 @@ export default function MyPage() {
       <section>
         <h2 className="kb-section">Settings</h2>
         <div className="kb-card mt-3 divide-y divide-line">
-          <SettingRow icon="A문" label="Language" value="English" valueClass="text-primary" />
+          <SettingRow
+            icon="A문"
+            label="Language"
+            value={isAuthenticated ? langLabel : '-'}
+            valueClass="text-primary"
+          />
           <SettingRow
             icon="🔔"
             label="알림 설정"
@@ -142,15 +162,48 @@ export default function MyPage() {
             valueClass="text-muted-foreground"
             onClick={handleNotificationClick}
           />
+          {isAuthenticated && (
+            <SettingRow
+              icon="🚪"
+              label="로그아웃"
+              labelClass="text-destructive"
+              value=""
+              onClick={() => setLogoutDialogOpen(true)}
+            />
+          )}
         </div>
       </section>
 
       <LoginRequiredDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} />
+      <LogoutConfirmDialog
+        open={logoutDialogOpen}
+        onOpenChange={setLogoutDialogOpen}
+        onConfirm={logout}
+        isPending={isLoggingOut}
+      />
     </div>
   );
 }
 
-function SettingRow({ icon, label, value, valueClass, onClick }) {
+function ProfileIcon() {
+  return (
+    <svg
+      width="32"
+      height="32"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      className="text-muted-foreground"
+    >
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" />
+    </svg>
+  );
+}
+
+function SettingRow({ icon, label, labelClass, value, valueClass, onClick }) {
   return (
     <button
       type="button"
@@ -160,7 +213,7 @@ function SettingRow({ icon, label, value, valueClass, onClick }) {
       <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-track text-[13px] font-bold">
         {icon}
       </span>
-      <p className="flex-1 text-[15px] font-bold">{label}</p>
+      <p className={cn('flex-1 text-[15px] font-bold', labelClass)}>{label}</p>
       <p className={cn('text-[14px] font-bold', valueClass)}>{value}</p>
     </button>
   );
