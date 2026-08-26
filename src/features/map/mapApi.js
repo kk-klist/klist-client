@@ -110,26 +110,52 @@ export const fetchRecommend = (genre, lat, lng, radius) =>
     .then(unwrap)
     .then((list) => (list ?? []).map(toRecommendPlace));
 
-// 버킷/체크인 — 팀 bucket-lists 담당의 GET/DELETE/checkin 준비 전까지는 실패 허용 (호출부에서 catch)
-// 준비되면 이슈 #12 에서 팀 스펙(/bucket-lists)으로 재작성 예정
-export const fetchBuckets = (completed) =>
-  client
-    .get('/api/v1/bucket', { params: completed != null ? { completed } : {} })
-    .then(unwrap)
-    .then((list) => list ?? []);
+// ── 버킷리스트 (팀 /api/v1/bucket-lists 스펙) ──
+// ⚠ 인증 필수: 컨트롤러가 @LoginUser 를 쓰므로 JWT 없으면 401. 호출부에서 catch 하여 로컬 상태만 유지한다.
+// ⚠ 서버 스키마에 contentId/contentTypeId 자리가 없다. 지도는 TourAPI contentId 로 장소를 식별하므로
+//   저장 시 프론트가 bucketListId ↔ contentId 매핑을 savedPlacesStore 에 들고 간다.
+//   (서버에서 새로 받은 항목은 contentId 를 복원할 수 없어 상세 시트를 열 수 없다 — 백엔드 필드 추가 요청 중)
 
-export const fetchVisits = () =>
+/** 서버 버킷 행 → 지도 마커용 Place. contentId 가 없으므로 id 는 로컬 매핑으로 보강해야 한다. */
+function toBucketPlace(b) {
+  return {
+    bucketListId: b.bucketListId,
+    id: b.bucketListId, // contentId 미보유 시 임시 식별자 (호출부에서 로컬 매핑으로 덮어씀)
+    contentTypeId: null,
+    title: b.title,
+    lat: b.latitude != null ? Number(b.latitude) : null,
+    lng: b.longitude != null ? Number(b.longitude) : null,
+    thumbnail: b.imageUrl ?? null,
+    addr: b.address ?? b.placeName ?? null,
+    dist: null,
+    category: b.category,
+    inBucket: true,
+    isVisited: b.isCompleted === true,
+  };
+}
+
+/** 목록 조회. 응답이 PageResponse 이므로 content 를 꺼낸다. completed 로 방문 여부 필터. */
+export const fetchBuckets = (completed, page = 0, size = 100) =>
   client
-    .get('/api/v1/bucket/visits')
+    .get('/api/v1/bucket-lists', {
+      params: { category: 'ALL', size, page, ...(completed != null ? { completed } : {}) },
+    })
     .then(unwrap)
-    .then((list) => list ?? []);
+    .then((res) => (res?.content ?? []).map(toBucketPlace));
+
+/** 방문 완료 목록 = completed=true 필터 (구 /bucket/visits 대체). */
+export const fetchVisits = () => fetchBuckets(true);
+
+/** 저장. category 는 @NotBlank 라 반드시 채워야 한다 (K_POP/K_BEAUTY/K_DRAMA/K_FOOD). */
+export const createBucket = (body) => client.post('/api/v1/bucket-lists', body).then(unwrap);
+
+export const deleteBucket = (bucketListId) =>
+  client.delete(`/api/v1/bucket-lists/${bucketListId}`).then(unwrap);
+
+/** 방문 인증 = completion PATCH (구 /bucket/checkin 대체). 서버에 거리 검증은 없어 프론트 haversine 이 담당. */
+export const setBucketCompletion = (bucketListId, isCompleted = true) =>
+  client.patch(`/api/v1/bucket-lists/${bucketListId}/completion`, { isCompleted }).then(unwrap);
 
 // 변경
 export const requestDirections = (body) =>
   client.post('/api/v1/route/directions', body).then(unwrap);
-
-export const createBucket = (body) => client.post('/api/v1/bucket', body).then(unwrap);
-
-export const deleteBucket = (bucketId) => client.delete(`/api/v1/bucket/${bucketId}`).then(unwrap);
-
-export const checkin = (body) => client.post('/api/v1/bucket/checkin', body).then(unwrap);

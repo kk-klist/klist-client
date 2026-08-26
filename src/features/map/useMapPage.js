@@ -4,13 +4,16 @@ import { toast } from '@/shared/utils/toast';
 import {
   getSavedPlaces,
   setSavedPlaces as writeSavedPlaces,
+  attachBucketListId,
+  getBucketListId,
+  mergeServerBuckets,
 } from '@/shared/utils/savedPlacesStore';
 import { useKakaoLoader, getKakao } from './useKakaoLoader';
 import * as mapApi from './mapApi';
 import { DEFAULT_CENTER, QUICK_PLACES, radiusForLevel } from './geo';
 import { getCurrentPosition, GEO_ERROR } from '@/shared/utils/geo';
 import { PURPLE_PIN, RED_PIN, TEAL_PIN, MY_DOT } from './pins';
-import { CATEGORIES } from './mapConstants';
+import { CATEGORIES, resolveBucketCategory } from './mapConstants';
 
 // TourAPI 가 지원하는 언어 화이트리스트. 미매칭 시 기본 'ko'.
 // 지금은 지도 페이지 URL query param(?lang=en)으로만 관리한다.
@@ -62,22 +65,20 @@ export function useMapPage() {
   const key = import.meta.env.VITE_KAKAO_JS_KEY;
   const noKey = !key || key.startsWith('여기에');
 
-  // ---- 최초 1회: 백엔드에서 저장/방문 상태 로드 (실패 시 localStorage 값 유지) ----
+  // ---- 최초 1회: 서버에서 저장/방문 상태 동기화 (비로그인·서버 오류 시 localStorage 값 유지) ----
+  // 서버 응답에는 contentId 가 없으므로 로컬 매핑으로 보강한 뒤 지도 식별자(id)를 뽑는다.
   useEffect(() => {
     (async () => {
       try {
-        const [buckets, visits] = await Promise.all([mapApi.fetchBuckets(), mapApi.fetchVisits()]);
-        setSaved(buckets.map((b) => b.contentId));
-        const v = Array.from(
-          new Set([
-            ...buckets.filter((b) => b.isCompleted).map((b) => b.contentId),
-            ...visits.map((x) => x.contentId),
-          ]),
-        );
+        const merged = mergeServerBuckets(await mapApi.fetchBuckets());
+        setSaved(merged.map((b) => b.id));
+        const v = merged.filter((b) => b.isVisited).map((b) => b.id);
         visitedRef.current = v;
         setVisited(v);
+        // 서버가 정본이므로 로컬 저장분도 최신 상태로 덮어써 마커 색이 어긋나지 않게 한다.
+        setSavedPlaces(merged);
       } catch {
-        /* 백엔드 미기동/미구현 시 조용히 스킵 — 초기화 시 localStorage 값 이미 로드됨 */
+        /* 비로그인(401)/백엔드 미기동 시 조용히 스킵 — 초기화 시 localStorage 값 이미 로드됨 */
       }
     })();
   }, []);
@@ -161,9 +162,13 @@ export function useMapPage() {
     try {
       let result = [];
       const currentLang = langRef.current;
-      // MyList 는 shared savedPlacesStore 기준 (백엔드 /bucket-lists 연동은 이슈 #12 에서 교체 예정)
-      if (cat.source === 'mylist') result = savedPlaces;
-      else if (cat.source === 'recommend')
+      // MyList 는 서버(/bucket-lists)가 정본. 비로그인(401)이거나 서버 오류면 로컬 저장분으로 폴백한다.
+      if (cat.source === 'mylist') {
+        result = await mapApi
+          .fetchBuckets()
+          .then((list) => mergeServerBuckets(list))
+          .catch(() => savedPlaces);
+      } else if (cat.source === 'recommend')
         result = await mapApi.fetchRecommend(genreRef.current ?? undefined, lat, lng);
       else if (cat.source === 'nearby')
         result = await mapApi.fetchNearby(lat, lng, radius, undefined, currentLang);
@@ -372,18 +377,19 @@ export function useMapPage() {
     }, 1500);
   }
 
-  // 저장 토글: 미저장 → 저장 / 저장됨 → 취소
-  // 백엔드 /bucket-lists API 준비 완료 — 이슈 #12 에서 실호출로 교체 예정. 그전까지 UI 낙관적 갱신 + best-effort 호출.
+  // 저장 토글: 미저장 → 저장 / 저장됨 → 취소.
+  // UI 는 낙관적으로 먼저 갱신하고 서버 호출은 best-effort — 비로그인(401)이어도 로컬 저장은 유지된다.
   async function onSave() {
     if (!selected) return;
     const id = selected.id;
     const wasSaved =
       saved.includes(id) || savedPlaces.some((p) => p.id === id) || selected.inBucket;
     if (wasSaved) {
+      const bucketListId = selected.bucketListId ?? getBucketListId(id);
       setSaved((prev) => prev.filter((x) => x !== id));
       setSavedPlaces((prev) => prev.filter((p) => p.id !== id));
       toast('저장 취소');
-      mapApi.deleteBucket(id).catch(() => {});
+      if (bucketListId != null) mapApi.deleteBucket(bucketListId).catch(() => {});
       // MyList 탭이 활성이면 마커 목록 즉시 반영
       if (activeRef.current === 'mylist') {
         const next = savedPlaces.filter((p) => p.id !== id);
@@ -412,22 +418,30 @@ export function useMapPage() {
           ],
     );
     toast.success('저장 완료 🔖');
+    // 서버 스키마에 contentId 자리가 없어 개별 필드로 매핑한다. 성공 시 bucketListId 를 로컬에 붙여둔다.
     mapApi
       .createBucket({
-        contentId: id,
-        contentTypeId: selected.contentTypeId ?? undefined,
         title: selected.title,
-        lat: selected.lat,
-        lng: selected.lng,
-        thumbnail: selected.thumbnail ?? undefined,
-        addr: selected.addr ?? undefined,
+        category: resolveBucketCategory(activeRef.current, genreRef.current),
+        placeName: selected.title,
+        address: selected.addr ?? undefined,
+        latitude: selected.lat,
+        longitude: selected.lng,
+        imageUrl: selected.thumbnail ?? undefined,
+      })
+      .then((res) => {
+        if (res?.bucketListId == null) return;
+        attachBucketListId(id, res.bucketListId);
+        setSavedPlaces((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, bucketListId: res.bucketListId } : p)),
+        );
       })
       .catch(() => {});
   }
 
-  // 방문 인증 (checkin): 100m 이내 도착 시 그린 마커/뱃지로 마킹.
-  // 팀 #13(bucket-lists) checkin API 없어도 프론트에서 haversine 자체 검증으로 동작.
-  // API 생기면 best-effort 로 함께 호출 → 서버측 verify 결과로 대체.
+  // 방문 인증: 100m 이내 도착 시 그린 마커/뱃지로 마킹.
+  // 서버에는 거리 검증이 없고 completion 플래그만 있으므로, 검증은 프론트 haversine 이 담당하고
+  // 통과했을 때만 PATCH /bucket-lists/{id}/completion 을 호출한다.
   async function onCheckoff() {
     if (!selected || selected.lat == null || selected.lng == null) return;
     const me = await ensureMyLoc();
@@ -447,18 +461,9 @@ export function useMapPage() {
       prev.map((p) => (p.id === selected.id ? { ...p, isVisited: true } : p)),
     );
     toast.success('방문 인증 완료! 🎉');
-    // 서버 API 붙으면 best-effort 로 통보 (실패해도 UI 는 이미 반영)
-    mapApi
-      .checkin({
-        contentId: selected.id,
-        placeLat: selected.lat,
-        placeLng: selected.lng,
-        userLat: me.lat,
-        userLng: me.lng,
-        title: selected.title,
-        contentTypeId: selected.contentTypeId ?? undefined,
-      })
-      .catch(() => {});
+    // 서버에 반영 (실패해도 UI 는 이미 반영됨). 저장 전 장소는 bucketListId 가 없어 로컬만 유지된다.
+    const bucketListId = selected.bucketListId ?? getBucketListId(selected.id);
+    if (bucketListId != null) mapApi.setBucketCompletion(bucketListId, true).catch(() => {});
   }
 
   function haversineMeters(lat1, lng1, lat2, lng2) {
