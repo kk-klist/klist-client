@@ -25,7 +25,11 @@ export function LanguageBottomSheet({ open, onOpenChange }) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" showCloseButton={false} className="rounded-t-2xl px-0 pb-8">
+      <SheetContent
+        side="bottom"
+        showCloseButton={false}
+        className="mx-auto max-w-[560px] rounded-t-2xl px-0 pb-8"
+      >
         <SheetHeader className="px-5 pb-2">
           <SheetTitle>표시 언어 선택</SheetTitle>
         </SheetHeader>
