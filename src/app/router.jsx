@@ -12,6 +12,7 @@ import EndTripPage from '@/features/profile/ticket/EndTripPage'; // 티켓(마�
 import LoginPage from '@/features/auth/LoginPage';
 import OAuthCallbackPage from '@/features/auth/OAuthCallbackPage';
 import OnboardingPage from '@/features/onboarding/OnboardingPage';
+import ProfileEditPage from '@/features/profile/ProfileEditPage';
 
 // URL ↔ 페이지 매핑. 새 페이지는 features/{기능}/XxxPage.jsx 만들고 여기에 한 줄 추가.
 export const router = createBrowserRouter([
@@ -21,6 +22,7 @@ export const router = createBrowserRouter([
       { path: '/login', element: <LoginPage /> }, // ⚠️ 미연동: 아직 진입점 없음(주소 직접입력만). 첫진입/가드는 인증 담당이 연결
       { path: '/oauth/callback', element: <OAuthCallbackPage /> }, // OAuth 로그인 콜백 처리
       { path: '/onboarding', element: <OnboardingPage /> }, // 최초 로그인 시 프로필 설정
+      { path: '/profile/edit', element: <ProfileEditPage /> }, // 프로필 수정
     ],
   },
   { path: '/navi', element: <NaviPage /> }, // 풀스크린 길찾기 (Map 의 Find Route → 여기)
