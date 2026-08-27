@@ -3,6 +3,10 @@ import { SUPPORTED_NATIONALITIES } from '@/shared/constants/locationOptions';
 
 const NATIONALITY_VALUES = SUPPORTED_NATIONALITIES.map((n) => n.value);
 
+export const withdrawSchema = z.object({
+  reason: z.string().min(1, '탈퇴 사유를 입력해주세요.'),
+});
+
 export const profileUpdateSchema = z.object({
   nickname: z
     .string()
