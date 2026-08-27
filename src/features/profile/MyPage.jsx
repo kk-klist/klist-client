@@ -9,6 +9,8 @@ import { getCountryFlagEmoji } from './countryFlag';
 import { LanguageBottomSheet } from './LanguageBottomSheet';
 import { LoginRequiredDialog } from './LoginRequiredDialog';
 import { LogoutConfirmDialog } from './LogoutConfirmDialog';
+import { WithdrawConfirmDialog } from './WithdrawConfirmDialog';
+import { useWithdrawMutation } from './profileApi';
 
 export default function MyPage() {
   const navigate = useNavigate();
@@ -16,8 +18,10 @@ export default function MyPage() {
   const user = useSelector(selectCurrentUser);
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
   const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
   const { mutate: logout, isPending: isLoggingOut } = useLogoutMutation();
+  const { mutate: withdraw, isPending: isWithdrawing } = useWithdrawMutation();
 
   const langLabel =
     SUPPORTED_LANGUAGES.find((l) => l.value === user?.preferredLanguage)?.label ?? '-';
@@ -188,6 +192,15 @@ export default function MyPage() {
               onClick={() => setLogoutDialogOpen(true)}
             />
           )}
+          {isAuthenticated && (
+            <SettingRow
+              icon="⚠️"
+              label="탈퇴하기"
+              labelClass="text-destructive"
+              value=""
+              onClick={() => setWithdrawDialogOpen(true)}
+            />
+          )}
         </div>
       </section>
 
@@ -198,6 +211,12 @@ export default function MyPage() {
         onOpenChange={setLogoutDialogOpen}
         onConfirm={logout}
         isPending={isLoggingOut}
+      />
+      <WithdrawConfirmDialog
+        open={withdrawDialogOpen}
+        onOpenChange={setWithdrawDialogOpen}
+        onConfirm={withdraw}
+        isPending={isWithdrawing}
       />
     </div>
   );
