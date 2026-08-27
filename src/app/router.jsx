@@ -4,7 +4,6 @@ import { AuthLayout } from '@/shared/components/AuthLayout';
 import HomePage from '@/features/home/HomePage';
 import BucketPage from '@/features/bucket/BucketPage';
 import MapPage from '@/features/map/MapPage';
-import NaviPage from '@/features/map/navi/NaviPage'; // 길찾기(지도 하위)
 import AssistPage from '@/features/assist/AssistPage';
 import MyPage from '@/features/profile/MyPage';
 import TicketDetailPage from '@/features/profile/ticket/TicketDetailPage'; // 티켓(마이 하위)
@@ -25,7 +24,6 @@ export const router = createBrowserRouter([
       { path: '/profile/edit', element: <ProfileEditPage /> }, // 프로필 수정
     ],
   },
-  { path: '/navi', element: <NaviPage /> }, // 풀스크린 길찾기 (Map 의 Find Route → 여기)
   { path: '/ticket', element: <TicketDetailPage /> }, // 티켓 상세 + QR 공유 (MyPage 티켓카드 → 여기)
   { path: '/ticket/new', element: <EndTripPage /> }, // 여행 종료 · 기간 선택 (MyPage End trip → 여기)
   {
