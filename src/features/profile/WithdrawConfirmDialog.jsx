@@ -26,7 +26,7 @@ export function WithdrawConfirmDialog({ open, onOpenChange, onConfirm, isPending
     onOpenChange(next);
   };
 
-  const onSubmit = ({ reason }) => onConfirm([reason]);
+  const onSubmit = ({ reason }) => onConfirm({ reasons: [reason] });
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
