@@ -39,7 +39,6 @@ export function WithdrawConfirmDialog({ open, onOpenChange, onConfirm, isPending
           <ul className="list-disc space-y-1 pl-5 text-[13px] text-muted-foreground">
             <li>버킷리스트, 여행 티켓 등 모든 데이터가 삭제됩니다.</li>
             <li>삭제된 데이터는 복구할 수 없습니다.</li>
-            <li>카카오 계정의 앱 연결도 함께 해제됩니다.</li>
           </ul>
 
           <textarea
