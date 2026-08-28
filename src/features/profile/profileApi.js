@@ -6,6 +6,8 @@ const updateProfile = (body) => client.patch('/api/v1/members/me', body);
 const updateProfileImage = (body) =>
   client.put('/api/v1/members/me/profile-image', body).then((res) => res?.data);
 
+const updatePreferredLanguage = (body) => client.patch('/api/v1/members/me/language', body);
+
 export function useUpdateProfileMutation() {
   const queryClient = useQueryClient();
 
@@ -22,6 +24,17 @@ export function useUpdateProfileImageMutation() {
 
   return useMutation({
     mutationFn: updateProfileImage,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['member'] });
+    },
+  });
+}
+
+export function useUpdatePreferredLanguageMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updatePreferredLanguage,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['member'] });
     },
