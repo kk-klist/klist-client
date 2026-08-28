@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '@/features/auth/authSlice';
 import { toast } from '@/shared/utils/toast';
 import {
   getSavedPlaces,
@@ -15,13 +17,20 @@ import { getCurrentPosition, GEO_ERROR } from '@/shared/utils/geo';
 import { PURPLE_PIN, RED_PIN, TEAL_PIN, MY_DOT } from './pins';
 import { CATEGORIES, resolveBucketCategory } from './mapConstants';
 
-// TourAPI 가 지원하는 언어 화이트리스트. 미매칭 시 기본 'ko'.
-// 지금은 지도 페이지 URL query param(?lang=en)으로만 관리한다.
-// 추후 마이페이지 Language 설정 or 온보딩 언어 선택이 붙으면 전역 store 로 승격 예정 (기준문서 참고).
+// TourAPI 가 실제로 응답하는 언어 화이트리스트 (공공데이터포털 활용신청 완료분).
+// SUPPORTED_LANGUAGES(온보딩/마이페이지)에는 ru/es/de/fr 도 있지만 TourAPI 서비스가 없어
+// 여기서 걸러 'ko' 로 떨어뜨린다. 백엔드 TourService 도 default -> KorService2 로 이중 방어한다.
 const SUPPORTED_LANGS = new Set(['ko', 'en', 'ja', 'zh-CN', 'zh-TW']);
-function resolveLang(search) {
+
+/**
+ * 지도에서 쓸 언어를 결정한다.
+ * 우선순위: URL ?lang= (임시 미리보기/QA용) > 로그인 사용자의 마이페이지 언어 설정 > 'ko'
+ */
+function resolveLang(search, preferredLanguage) {
   const raw = new URLSearchParams(search).get('lang');
-  return raw && SUPPORTED_LANGS.has(raw) ? raw : 'ko';
+  if (raw && SUPPORTED_LANGS.has(raw)) return raw;
+  if (preferredLanguage && SUPPORTED_LANGS.has(preferredLanguage)) return preferredLanguage;
+  return 'ko';
 }
 
 // 지도 페이지 유스케이스 전체(마커/검색/추천/저장/인증)를 담당하는 훅.
@@ -29,7 +38,11 @@ function resolveLang(search) {
 export function useMapPage() {
   const ready = useKakaoLoader();
   const location = useLocation();
-  const lang = useMemo(() => resolveLang(location.search), [location.search]);
+  const preferredLanguage = useSelector(selectCurrentUser)?.preferredLanguage;
+  const lang = useMemo(
+    () => resolveLang(location.search, preferredLanguage),
+    [location.search, preferredLanguage],
+  );
   const langRef = useRef(lang);
 
   const mapDivRef = useRef(null);
