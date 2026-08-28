@@ -83,13 +83,13 @@ export function useMapPage() {
   useEffect(() => {
     (async () => {
       try {
+        // mergeServerBuckets 가 로컬 전용 저장분까지 유지하므로 그대로 반영해도 안전하다.
         const merged = mergeServerBuckets(await mapApi.fetchBuckets());
+        setSavedPlaces(merged);
         setSaved(merged.map((b) => b.id));
         const v = merged.filter((b) => b.isVisited).map((b) => b.id);
         visitedRef.current = v;
         setVisited(v);
-        // 서버가 정본이므로 로컬 저장분도 최신 상태로 덮어써 마커 색이 어긋나지 않게 한다.
-        setSavedPlaces(merged);
       } catch {
         /* 비로그인(401)/백엔드 미기동 시 조용히 스킵 — 초기화 시 localStorage 값 이미 로드됨 */
       }
