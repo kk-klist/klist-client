@@ -74,8 +74,11 @@ export function getBucketListId(id) {
 
 /**
  * 서버 목록과 로컬 저장분을 합친다.
- * 서버 항목은 contentId 를 복원할 수 없으므로, 좌표·제목이 일치하는 로컬 항목이 있으면
- * 그 contentId(=id)와 contentTypeId 를 살려 상세 시트를 열 수 있게 한다.
+ *
+ * - 서버 항목에는 contentId 가 없으므로, 좌표·제목이 일치하는 로컬 항목이 있으면
+ *   그 contentId(=id)와 contentTypeId 를 살려 상세 시트를 열 수 있게 한다.
+ * - 비로그인 상태에서 저장해 서버에 없는 항목(bucketListId 미보유)은 뒤에 붙여 유지한다.
+ *   서버 목록으로 덮어쓰면 로그인하는 순간 로컬 저장분이 사라지기 때문이다.
  */
 export function mergeServerBuckets(serverList) {
   const local = getSavedPlaces();
@@ -86,9 +89,15 @@ export function mergeServerBuckets(serverList) {
     Math.abs(a.lat - b.lat) < 1e-6 &&
     Math.abs(a.lng - b.lng) < 1e-6;
 
-  return serverList.map((s) => {
+  const matchedLocalIds = new Set();
+  const enriched = serverList.map((s) => {
     const hit =
       local.find((l) => l.bucketListId === s.bucketListId) ?? local.find((l) => sameSpot(l, s));
-    return hit ? { ...s, id: hit.id, contentTypeId: hit.contentTypeId ?? null } : s;
+    if (!hit) return s;
+    matchedLocalIds.add(hit.id);
+    return { ...s, id: hit.id, contentTypeId: hit.contentTypeId ?? null };
   });
+
+  const localOnly = local.filter((p) => p.bucketListId == null && !matchedLocalIds.has(p.id));
+  return [...enriched, ...localOnly];
 }
