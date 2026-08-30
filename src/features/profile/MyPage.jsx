@@ -43,18 +43,13 @@ export default function MyPage() {
     else setLanguageSheetOpen(true);
   };
 
-  const handleNotificationClick = () => {
-    if (!isAuthenticated) setLoginDialogOpen(true);
-    // 로그인 상태에서는 아직 실제 알림 설정 기능이 없어 placeholder로 둔다.
-  };
-
   return (
     <div className="kb-page">
       {/* 프로필 */}
       <section>
         <div className="kb-card flex items-center gap-4 p-5">
-          {isAuthenticated ? (
-            user?.profileImageUrl ? (
+          {isAuthenticated &&
+            (user?.profileImageUrl ? (
               <img
                 src={user.profileImageUrl}
                 alt=""
@@ -64,10 +59,7 @@ export default function MyPage() {
               <span className="flex h-16 w-16 items-center justify-center rounded-full bg-track">
                 <ProfileIcon />
               </span>
-            )
-          ) : (
-            <span className="h-16 w-16 animate-pulse rounded-full bg-track" />
-          )}
+            ))}
           <div className="flex-1 space-y-1.5">
             {isAuthenticated ? (
               <>
@@ -122,17 +114,7 @@ export default function MyPage() {
           </button>
         </div>
 
-        {!isAuthenticated ? (
-          <button
-            type="button"
-            className="mt-3 block w-full space-y-3 overflow-hidden rounded-card bg-white p-4 text-left shadow-card"
-            onClick={() => setLoginDialogOpen(true)}
-          >
-            <div className="h-9 w-full animate-pulse rounded bg-track" />
-            <div className="h-8 w-full animate-pulse rounded bg-track" />
-            <div className="h-4 w-2/3 animate-pulse rounded bg-track" />
-          </button>
-        ) : ticketsLoading ? (
+        {ticketsLoading ? (
           <div className="mt-3 w-full space-y-3 overflow-hidden rounded-card bg-white p-4 shadow-card">
             <div className="h-9 w-full animate-pulse rounded bg-track" />
             <div className="h-8 w-full animate-pulse rounded bg-track" />
@@ -157,11 +139,7 @@ export default function MyPage() {
             >
               {tickets.map((ticket) => (
                 <div key={ticket.ticketId} className="w-full shrink-0 snap-center">
-                  <button
-                    type="button"
-                    className="block w-full overflow-hidden rounded-card text-left shadow-card"
-                    onClick={() => navigate('/ticket')}
-                  >
+                  <div className="block w-full overflow-hidden rounded-card text-left shadow-card">
                     <div className="flex items-center justify-between bg-brand-gradient px-4 py-2.5 text-white">
                       <span className="text-[12px] font-extrabold tracking-wide">
                         K-BUCKET · TRAVEL TICKET
@@ -214,7 +192,7 @@ export default function MyPage() {
                         </div>
                       </div>
                     </div>
-                  </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -269,13 +247,6 @@ export default function MyPage() {
             value={isAuthenticated ? langLabel : '-'}
             valueClass="text-primary"
             onClick={handleLanguageClick}
-          />
-          <SettingRow
-            icon="🔔"
-            label="알림 설정"
-            value="켜짐"
-            valueClass="text-muted-foreground"
-            onClick={handleNotificationClick}
           />
           {isAuthenticated && (
             <SettingRow
