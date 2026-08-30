@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { selectCurrentUser, selectIsAuthenticated } from '@/features/auth/authSlice';
 import { useLogoutMutation } from '@/features/auth/authApi';
 import { SUPPORTED_LANGUAGES } from '@/shared/constants/locationOptions';
 import { cn } from '@/shared/utils/cn';
+import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { getCountryFlagEmoji } from './countryFlag';
 import { LanguageBottomSheet } from './LanguageBottomSheet';
 import { LoginRequiredDialog } from './LoginRequiredDialog';
@@ -23,6 +24,8 @@ export default function MyPage() {
   const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
   const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
   const [endTripSheetOpen, setEndTripSheetOpen] = useState(false);
+  const [activeTicketIdx, setActiveTicketIdx] = useState(0);
+  const ticketScrollRef = useRef(null);
 
   const {
     data: tickets = [],
@@ -143,43 +146,116 @@ export default function MyPage() {
             <p className="mt-1 text-[12px] text-muted2">여행 종료으로 첫 티켓을 만들어보세요</p>
           </div>
         ) : (
-          <button
-            type="button"
-            className="mt-3 block w-full overflow-hidden rounded-card text-left shadow-card"
-            onClick={() => navigate('/ticket')}
-          >
-            <div className="flex items-center justify-between bg-brand-gradient px-4 py-2.5 text-white">
-              <span className="text-[12px] font-extrabold tracking-wide">
-                K-BUCKET · TRAVEL TICKET
-              </span>
-              <span className="text-[11px] font-bold opacity-80">
-                NO.{String(tickets[0].visitCount).padStart(3, '0')}
-              </span>
-            </div>
-            <div className="bg-white px-4 py-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[26px] font-extrabold leading-none">ICN</p>
-                  <p className="mt-1 text-[12px] text-muted-foreground">INCHEON</p>
+          <>
+            <div
+              ref={ticketScrollRef}
+              onScroll={() => {
+                const el = ticketScrollRef.current;
+                if (el) setActiveTicketIdx(Math.round(el.scrollLeft / el.clientWidth));
+              }}
+              className="mt-3 flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {tickets.map((ticket) => (
+                <div key={ticket.ticketId} className="w-full shrink-0 snap-center">
+                  <button
+                    type="button"
+                    className="block w-full overflow-hidden rounded-card text-left shadow-card"
+                    onClick={() => navigate('/ticket')}
+                  >
+                    <div className="flex items-center justify-between bg-brand-gradient px-4 py-2.5 text-white">
+                      <span className="text-[12px] font-extrabold tracking-wide">
+                        K-BUCKET · TRAVEL TICKET
+                      </span>
+                      <span className="text-[11px] font-bold opacity-80">
+                        NO.{String(ticket.visitCount).padStart(3, '0')}
+                      </span>
+                    </div>
+                    <div className="bg-white px-4 py-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-[26px] font-extrabold leading-none">
+                            {ticketDay(ticket.startDate)}
+                          </p>
+                          <p className="mt-1 text-[12px] text-muted-foreground">
+                            {ticketMonthYear(ticket.startDate)}
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">출발</p>
+                        </div>
+                        <div className="mx-3 flex-1 border-t border-dashed border-line2" />
+                        <span className="text-primary">✈</span>
+                        <div className="mx-3 flex-1 border-t border-dashed border-line2" />
+                        <div className="text-right">
+                          <p className="text-[26px] font-extrabold leading-none">
+                            {ticketDay(ticket.endDate)}
+                          </p>
+                          <p className="mt-1 text-[12px] text-muted-foreground">
+                            {ticketMonthYear(ticket.endDate)}
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">도착</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 space-y-2 text-[13px]">
+                        <span className="font-bold">
+                          {ticket.startDate.replace(/-/g, '.')} –{' '}
+                          {ticket.endDate.replace(/-/g, '.')}
+                        </span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-bold text-success">
+                            완료 {ticket.completedCount}
+                          </span>
+                          {ticket.categories.map((cat) => (
+                            <span
+                              key={cat}
+                              className="rounded-full bg-track px-2 py-0.5 text-[11px] font-semibold text-muted-foreground"
+                            >
+                              {cat}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
                 </div>
-                <div className="mx-3 flex-1 border-t border-dashed border-line2" />
-                <span className="text-primary">✈</span>
-                <div className="mx-3 flex-1 border-t border-dashed border-line2" />
-                <div className="text-right">
-                  <p className="text-[26px] font-extrabold leading-none">SEL</p>
-                  <p className="mt-1 text-[12px] text-muted-foreground">
-                    SEOUL · {tickets[0].visitCount}번째 방문
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4 text-[13px]">
-                <span className="font-bold">
-                  {tickets[0].startDate.replace(/-/g, '.')} –{' '}
-                  {tickets[0].endDate.replace(/-/g, '.')}
-                </span>
-              </div>
+              ))}
             </div>
-          </button>
+            {tickets.length > 1 && (
+              <div className="mt-2 flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  disabled={activeTicketIdx === 0}
+                  onClick={() => {
+                    const el = ticketScrollRef.current;
+                    if (el) el.scrollBy({ left: -el.clientWidth, behavior: 'smooth' });
+                  }}
+                  className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-opacity disabled:opacity-30"
+                >
+                  <ChevronLeftIcon size={16} />
+                </button>
+                <div className="flex gap-1.5">
+                  {tickets.map((_, i) => (
+                    <span
+                      key={i}
+                      className={cn(
+                        'h-1.5 rounded-full transition-all duration-200',
+                        i === activeTicketIdx ? 'w-4 bg-primary' : 'w-1.5 bg-track',
+                      )}
+                    />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  disabled={activeTicketIdx === tickets.length - 1}
+                  onClick={() => {
+                    const el = ticketScrollRef.current;
+                    if (el) el.scrollBy({ left: el.clientWidth, behavior: 'smooth' });
+                  }}
+                  className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-opacity disabled:opacity-30"
+                >
+                  <ChevronRightIcon size={16} />
+                </button>
+              </div>
+            )}
+          </>
         )}
       </section>
 
@@ -239,6 +315,17 @@ export default function MyPage() {
       />
     </div>
   );
+}
+
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+function ticketDay(dateStr) {
+  return dateStr.split('-')[2];
+}
+
+function ticketMonthYear(dateStr) {
+  const [y, m] = dateStr.split('-');
+  return `${MONTHS[Number(m) - 1]} · ${y}`;
 }
 
 function ProfileIcon() {

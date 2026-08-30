@@ -258,4 +258,7 @@
   .kb-grad-kbeauty {
     background: linear-gradient(135deg, #a78bfa, #7c3aed);
   }
+  .bg-brand-gradient {
+    background: linear-gradient(135deg, var(--primary), var(--kfood));
+  }
 }
