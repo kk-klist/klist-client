@@ -1,5 +1,7 @@
+import { useSelector } from 'react-redux';
 import { cn } from '@/shared/utils/cn';
 import { PageHeader } from '@/shared/components/PageHeader';
+import { selectCurrentUser } from '@/features/auth/authSlice';
 import { WeatherOutfitCard } from './WeatherOutfitCard';
 import { NearbyRecommendSection } from './NearbyRecommendSection';
 import { BucketProgressCard } from './BucketProgressCard';
@@ -45,14 +47,26 @@ const BUCKET_PREVIEW = [
 ];
 
 export default function HomePage() {
+  const user = useSelector(selectCurrentUser);
+  const isKorean = user?.preferredLanguage === 'ko';
+  const name = user?.nickname;
+
   return (
     <div className="kb-page">
       <PageHeader title="Home" />
 
       {/* 인사 */}
       <div>
-        <h1 className="kb-title">Annyeong, Yuna 👋</h1>
-        <p className="mt-1 text-[15px] text-muted-foreground">Seoul is waiting for you today.</p>
+        <h1 className="kb-title">
+          {isKorean
+            ? name
+              ? `안녕하세요, ${name}님`
+              : '안녕하세요'
+            : name
+              ? `Hi, ${name}`
+              : 'Hi there'}{' '}
+          👋
+        </h1>
       </div>
 
       {/* 진행률 카드 */}
