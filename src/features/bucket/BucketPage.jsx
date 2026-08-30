@@ -6,6 +6,7 @@ import { BucketList } from './BucketList';
 import { useBucketListsQuery } from './bucketApi';
 import { BUCKET_TABS, DEFAULT_FILTERS } from './bucketConstants';
 import { Button } from '@/shared/components/ui/button';
+import { PageHeader } from '@/shared/components/PageHeader';
 import { cn } from '@/shared/utils/cn';
 
 function getFilters(searchParams) {
@@ -36,12 +37,14 @@ export default function BucketPage() {
 
   return (
     <div className="kb-page">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="kb-title">Bucket list</h1>
-        <Button size="sm" disabled>
-          <Plus /> Add New
-        </Button>
-      </div>
+      <PageHeader
+        title="Bucket list"
+        action={
+          <Button size="sm" disabled>
+            <Plus /> Add New
+          </Button>
+        }
+      />
 
       <div className="kb-segment" aria-label="버킷리스트 구분">
         {BUCKET_TABS.map((tab) => (

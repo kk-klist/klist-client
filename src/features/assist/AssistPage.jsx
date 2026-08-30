@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { ErrorMessage } from '@/shared/components/ErrorMessage';
+import { PageHeader } from '@/shared/components/PageHeader';
 import { ChatComposer } from './ChatComposer';
 import { ChatMessageBubble } from './ChatMessageBubble';
 import { useAssistChat } from './useAssistChat';
@@ -21,13 +22,9 @@ export default function AssistPage() {
   return (
     <div className="mx-auto flex h-full max-w-[520px] flex-col">
       {/* 헤더 (고정) */}
-      <header className="flex shrink-0 items-center gap-3 border-b border-line px-5 pb-3 pt-[calc(14px+env(safe-area-inset-top))]">
-        <span className="kb-logo h-11 w-11 text-lg">🤖</span>
-        <div>
-          <h1 className="text-[19px] font-extrabold tracking-tight">K-Buddy</h1>
-          <p className="text-[12px] font-semibold text-success">● Online · AI travel assistant</p>
-        </div>
-      </header>
+      <div className="shrink-0 border-b border-line px-5 pb-3 pt-[calc(14px+env(safe-area-inset-top))]">
+        <PageHeader title="K-Buddy" subtitle="● Online · AI travel assistant" />
+      </div>
 
       {!chat.sessionId ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-5 overflow-y-auto px-5 py-8 text-center">

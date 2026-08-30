@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { selectCurrentUser, selectIsAuthenticated } from '@/features/auth/authSlice';
 import { useLogoutMutation } from '@/features/auth/authApi';
 import { SUPPORTED_LANGUAGES } from '@/shared/constants/locationOptions';
+import { PageHeader } from '@/shared/components/PageHeader';
 import { cn } from '@/shared/utils/cn';
 import { getCountryFlagEmoji } from './countryFlag';
 import { LanguageBottomSheet } from './LanguageBottomSheet';
@@ -43,6 +44,8 @@ export default function MyPage() {
 
   return (
     <div className="kb-page">
+      <PageHeader title="My" />
+
       {/* 프로필 */}
       <section>
         <div className="kb-card flex items-center gap-4 p-5">
