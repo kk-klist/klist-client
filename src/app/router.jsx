@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/shared/components/AppLayout';
 import { AuthLayout } from '@/shared/components/AuthLayout';
+import { ProtectedRoute } from '@/app/ProtectedRoute';
 import HomePage from '@/features/home/HomePage';
 import BucketPage from '@/features/bucket/BucketPage';
 import MapPage from '@/features/map/MapPage';
@@ -18,16 +19,26 @@ export const router = createBrowserRouter([
   {
     element: <AuthLayout />, // 하단탭 없는 인증 전용 레이아웃 (앱 최대폭 + 배경색 공통)
     children: [
-      { path: '/login', element: <LoginPage /> }, // ⚠️ 미연동: 아직 진입점 없음(주소 직접입력만). 첫진입/가드는 인증 담당이 연결
-      { path: '/oauth/callback', element: <OAuthCallbackPage /> }, // OAuth 로그인 콜백 처리
-      { path: '/onboarding', element: <OnboardingPage /> }, // 최초 로그인 시 프로필 설정
-      { path: '/profile/edit', element: <ProfileEditPage /> }, // 프로필 수정
+      { path: '/login', element: <LoginPage /> }, // 비로그인 접근 허용
+      { path: '/oauth/callback', element: <OAuthCallbackPage /> }, // OAuth 로그인 콜백 처리 (비로그인 접근 허용)
     ],
   },
-  { path: '/ticket', element: <TicketDetailPage /> }, // 티켓 상세 + QR 공유 (MyPage 티켓카드 → 여기)
-  { path: '/ticket/new', element: <EndTripPage /> }, // 여행 종료 · 기간 선택 (MyPage End trip → 여기)
   {
-    element: <AppLayout />, // 하단 탭 내비 공통 레이아웃
+    element: <ProtectedRoute />, // 비로그인이면 /login으로 리다이렉트. 원래도 로그인을 전제로 한 페이지만 포함.
+    children: [
+      {
+        element: <AuthLayout />,
+        children: [
+          { path: '/onboarding', element: <OnboardingPage /> }, // 최초 로그인 시 프로필 설정
+          { path: '/profile/edit', element: <ProfileEditPage /> }, // 프로필 수정
+        ],
+      },
+      { path: '/ticket', element: <TicketDetailPage /> }, // 티켓 상세 + QR 공유 (MyPage 티켓카드 → 여기)
+      { path: '/ticket/new', element: <EndTripPage /> }, // 여행 종료 · 기간 선택 (MyPage End trip → 여기)
+    ],
+  },
+  {
+    element: <AppLayout />, // 하단 탭 내비 공통 레이아웃. 게스트 열람 허용 (MyPage/LoginRequiredDialog가 자체적으로 로그인 유도).
     children: [
       { path: '/', element: <Navigate to="/home" replace /> },
       { path: '/home', element: <HomePage /> }, // 홈 (디자인 깡통 — 홈 담당)
