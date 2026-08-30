@@ -11,6 +11,8 @@ import { LoginRequiredDialog } from './LoginRequiredDialog';
 import { LogoutConfirmDialog } from './LogoutConfirmDialog';
 import { WithdrawConfirmDialog } from './WithdrawConfirmDialog';
 import { useWithdrawMutation } from './profileApi';
+import { useTicketsQuery } from './ticket/ticketApi';
+import { EndTripBottomSheet } from './ticket/EndTripBottomSheet';
 
 export default function MyPage() {
   const navigate = useNavigate();
@@ -20,16 +22,18 @@ export default function MyPage() {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
   const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
+  const [endTripSheetOpen, setEndTripSheetOpen] = useState(false);
+
+  const {
+    data: tickets = [],
+    isLoading: ticketsLoading,
+    isError: ticketsError,
+  } = useTicketsQuery();
   const { mutate: logout, isPending: isLoggingOut } = useLogoutMutation();
   const { mutate: withdraw, isPending: isWithdrawing } = useWithdrawMutation();
 
   const langLabel =
     SUPPORTED_LANGUAGES.find((l) => l.value === user?.preferredLanguage)?.label ?? '-';
-
-  const guardedNavigate = (path) => {
-    if (isAuthenticated) navigate(path);
-    else setLoginDialogOpen(true);
-  };
 
   const handleLanguageClick = () => {
     if (!isAuthenticated) setLoginDialogOpen(true);
@@ -106,27 +110,52 @@ export default function MyPage() {
           <button
             type="button"
             className="rounded-full bg-primary px-4 py-2 text-[13px] font-bold text-white"
-            onClick={() => guardedNavigate('/ticket/new')}
+            onClick={() => {
+              if (isAuthenticated) setEndTripSheetOpen(true);
+              else setLoginDialogOpen(true);
+            }}
           >
-            End trip
+            여행 종료
           </button>
         </div>
 
-        {isAuthenticated ? (
+        {!isAuthenticated ? (
+          <button
+            type="button"
+            className="mt-3 block w-full space-y-3 overflow-hidden rounded-card bg-white p-4 text-left shadow-card"
+            onClick={() => setLoginDialogOpen(true)}
+          >
+            <div className="h-9 w-full animate-pulse rounded bg-track" />
+            <div className="h-8 w-full animate-pulse rounded bg-track" />
+            <div className="h-4 w-2/3 animate-pulse rounded bg-track" />
+          </button>
+        ) : ticketsLoading ? (
+          <div className="mt-3 w-full space-y-3 overflow-hidden rounded-card bg-white p-4 shadow-card">
+            <div className="h-9 w-full animate-pulse rounded bg-track" />
+            <div className="h-8 w-full animate-pulse rounded bg-track" />
+            <div className="h-4 w-2/3 animate-pulse rounded bg-track" />
+          </div>
+        ) : ticketsError ? (
+          <p className="mt-3 text-sm text-destructive">티켓을 불러오지 못했어요.</p>
+        ) : tickets.length === 0 ? (
+          <div className="mt-3 rounded-card bg-white p-6 text-center shadow-card">
+            <p className="text-[14px] font-bold text-muted-foreground">아직 여행 티켓이 없어요</p>
+            <p className="mt-1 text-[12px] text-muted2">여행 종료으로 첫 티켓을 만들어보세요</p>
+          </div>
+        ) : (
           <button
             type="button"
             className="mt-3 block w-full overflow-hidden rounded-card text-left shadow-card"
-            onClick={() => guardedNavigate('/ticket')}
+            onClick={() => navigate('/ticket')}
           >
-            {/* 티켓 헤더 (보라 스텁) */}
             <div className="flex items-center justify-between bg-brand-gradient px-4 py-2.5 text-white">
               <span className="text-[12px] font-extrabold tracking-wide">
                 K-BUCKET · TRAVEL TICKET
               </span>
-              <span className="text-[11px] font-bold opacity-80">NO.001</span>
+              <span className="text-[11px] font-bold opacity-80">
+                NO.{String(tickets[0].visitCount).padStart(3, '0')}
+              </span>
             </div>
-
-            {/* 티켓 본문 (항공권) */}
             <div className="bg-white px-4 py-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -138,31 +167,20 @@ export default function MyPage() {
                 <div className="mx-3 flex-1 border-t border-dashed border-line2" />
                 <div className="text-right">
                   <p className="text-[26px] font-extrabold leading-none">SEL</p>
-                  <p className="mt-1 text-[12px] text-muted-foreground">SEOUL · 1st VISIT</p>
+                  <p className="mt-1 text-[12px] text-muted-foreground">
+                    SEOUL · {tickets[0].visitCount}번째 방문
+                  </p>
                 </div>
               </div>
-
-              <div className="mt-4 flex items-center gap-3 text-[13px]">
-                <span className="font-bold">2026.07.12 – 07.18</span>
-                <span className="font-bold text-success">완료 3</span>
-                <span className="text-muted-foreground">저장 12</span>
+              <div className="mt-4 text-[13px]">
+                <span className="font-bold">
+                  {tickets[0].startDate.replace(/-/g, '.')} –{' '}
+                  {tickets[0].endDate.replace(/-/g, '.')}
+                </span>
               </div>
             </div>
           </button>
-        ) : (
-          <button
-            type="button"
-            className="mt-3 block w-full space-y-3 overflow-hidden rounded-card bg-white p-4 text-left shadow-card"
-            onClick={() => guardedNavigate('/ticket')}
-          >
-            <div className="h-9 w-full animate-pulse rounded bg-track" />
-            <div className="h-8 w-full animate-pulse rounded bg-track" />
-            <div className="h-4 w-2/3 animate-pulse rounded bg-track" />
-          </button>
         )}
-        <p className="mt-2 text-[12px] text-muted2">
-          티켓을 누르면 상세 화면으로 이동해요 · 여행 종료로 새 티켓을 만들 수 있어요
-        </p>
       </section>
 
       {/* 설정 */}
@@ -204,6 +222,7 @@ export default function MyPage() {
         </div>
       </section>
 
+      <EndTripBottomSheet open={endTripSheetOpen} onOpenChange={setEndTripSheetOpen} />
       <LanguageBottomSheet open={languageSheetOpen} onOpenChange={setLanguageSheetOpen} />
       <LoginRequiredDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} />
       <LogoutConfirmDialog
