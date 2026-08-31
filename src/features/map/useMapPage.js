@@ -18,9 +18,9 @@ import { PURPLE_PIN, RED_PIN, TEAL_PIN, MY_DOT } from './pins';
 import { CATEGORIES, resolveBucketCategory } from './mapConstants';
 
 // TourAPI 가 실제로 응답하는 언어 화이트리스트 (공공데이터포털 활용신청 완료분).
-// SUPPORTED_LANGUAGES(온보딩/마이페이지)에는 ru/es/de/fr 도 있지만 TourAPI 서비스가 없어
+// SUPPORTED_LANGUAGES(온보딩/마이페이지)에는 es/de/fr 도 있지만 활용신청 전이라 403 이므로
 // 여기서 걸러 'ko' 로 떨어뜨린다. 백엔드 TourService 도 default -> KorService2 로 이중 방어한다.
-const SUPPORTED_LANGS = new Set(['ko', 'en', 'ja', 'zh-CN', 'zh-TW']);
+const SUPPORTED_LANGS = new Set(['ko', 'en', 'ja', 'zh-CN', 'zh-TW', 'ru']);
 
 /**
  * 지도에서 쓸 언어를 결정한다.
