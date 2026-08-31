@@ -21,5 +21,11 @@ export const CATEGORY_STYLES = {
 export const DEFAULT_FILTERS = {
   tab: 'my',
   category: 'ALL',
+  sort: 'DISTANCE',
   page: 0,
 };
+
+export const RECOMMENDATION_SORTS = [
+  { label: '가까운 순', value: 'DISTANCE' },
+  { label: '가나다순', value: 'TITLE_ASC' },
+];

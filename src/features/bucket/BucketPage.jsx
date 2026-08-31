@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 
 import { BucketFilters } from './BucketFilters';
 import { BucketList } from './BucketList';
+import { BucketRecommendations } from './BucketRecommendations';
 import { useBucketListsQuery } from './bucketApi';
 import { BUCKET_TABS, DEFAULT_FILTERS } from './bucketConstants';
 import { Button } from '@/shared/components/ui/button';
@@ -15,6 +16,7 @@ function getFilters(searchParams) {
   return {
     tab: searchParams.get('tab') ?? DEFAULT_FILTERS.tab,
     category: searchParams.get('category') ?? DEFAULT_FILTERS.category,
+    sort: searchParams.get('sort') ?? DEFAULT_FILTERS.sort,
     page: Number.isInteger(page) && page >= 0 ? page : DEFAULT_FILTERS.page,
   };
 }
@@ -68,9 +70,7 @@ export default function BucketPage() {
           <BucketList query={bucketQuery} filters={filters} onPageChange={updateFilters} />
         </>
       ) : (
-        <div className="kb-card flex min-h-48 items-center justify-center p-6 text-sm text-muted-foreground">
-          추천 버킷리스트는 다음 작업에서 제공됩니다.
-        </div>
+        <BucketRecommendations filters={filters} onChange={updateFilters} />
       )}
     </div>
   );
