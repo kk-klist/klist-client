@@ -2,6 +2,7 @@ import { useMapPage } from './useMapPage';
 import { SearchBar } from './SearchBar';
 import { CategoryTabs, GenreChips } from './CategoryTabs';
 import { PlaceSheet } from './PlaceSheet';
+import { PageHeader } from '@/shared/components/PageHeader';
 
 // 지도 페이지 (화면정의서 v2) — 전체화면 카카오맵 + 상단 검색/칩 오버레이 + 우하단 현재위치 + 바텀시트.
 // 화면만 그리고 실제 일은 useMapPage 훅에 위임 (기준문서: 컴포넌트=Controller)
@@ -41,6 +42,9 @@ export default function MapPage() {
 
       {/* 상단 오버레이: 검색 + 필터칩 (지도 위에 떠 있음) */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col gap-2 px-4 pt-[calc(14px+env(safe-area-inset-top))]">
+        <div className="pointer-events-auto rounded-full bg-card/90 px-3 py-2 shadow-float backdrop-blur">
+          <PageHeader title="Map" />
+        </div>
         <div className="pointer-events-auto">
           <SearchBar onSearch={onSearch} />
         </div>

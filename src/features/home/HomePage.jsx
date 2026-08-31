@@ -1,6 +1,10 @@
+import { useSelector } from 'react-redux';
 import { cn } from '@/shared/utils/cn';
+import { PageHeader } from '@/shared/components/PageHeader';
+import { selectCurrentUser } from '@/features/auth/authSlice';
 import { WeatherOutfitCard } from './WeatherOutfitCard';
 import { NearbyRecommendSection } from './NearbyRecommendSection';
+import { BucketProgressCard } from './BucketProgressCard';
 
 // ═══════════════════════════════════════════════════════════════
 // [디자인 깡통 · 예시 파일] 홈 — 담당: 홈 담당자
@@ -12,7 +16,7 @@ import { NearbyRecommendSection } from './NearbyRecommendSection';
 //    ② 다른 기능 폴더(features/*) import 금지
 //    → 자세한 규칙: docs/디자인_기준문서.md, docs/프론트엔드_기준문서.md
 //
-// TODO(담당자): 진행률/근처 체크인/버킷 미리보기 실데이터 연동
+// TODO(담당자): 근처 체크인/버킷 미리보기 실데이터 연동
 // ═══════════════════════════════════════════════════════════════
 
 const BUCKET_PREVIEW = [
@@ -43,48 +47,30 @@ const BUCKET_PREVIEW = [
 ];
 
 export default function HomePage() {
+  const user = useSelector(selectCurrentUser);
+  const isKorean = user?.preferredLanguage === 'ko';
+  const name = user?.nickname;
+
   return (
     <div className="kb-page">
-      {/* 헤더: 로고 + 언어 토글 */}
-      <header className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <span className="kb-logo h-10 w-10 text-lg">K</span>
-          <span className="text-[20px] font-extrabold tracking-tight">BUCKET</span>
-        </div>
-        <div className="flex items-center rounded-full bg-track p-1 text-[13px] font-bold">
-          <button type="button" className="rounded-full bg-ink px-3.5 py-1.5 text-white">
-            EN
-          </button>
-          <button type="button" className="px-3 py-1.5 text-muted-foreground">
-            한
-          </button>
-        </div>
-      </header>
+      <PageHeader title="Home" />
 
       {/* 인사 */}
       <div>
-        <h1 className="kb-title">Annyeong, Yuna 👋</h1>
-        <p className="mt-1 text-[15px] text-muted-foreground">Seoul is waiting for you today.</p>
+        <h1 className="kb-title">
+          {isKorean
+            ? name
+              ? `안녕하세요, ${name}님`
+              : '안녕하세요'
+            : name
+              ? `Hi, ${name}`
+              : 'Hi there'}{' '}
+          👋
+        </h1>
       </div>
 
       {/* 진행률 카드 */}
-      <section className="kb-card flex items-center gap-5 p-5">
-        <ProgressDonut percent={33} />
-        <div className="flex-1">
-          <p className="text-[13px] text-muted-foreground">Bucket list progress</p>
-          <p className="text-[22px] font-extrabold">
-            3 <span className="text-muted-foreground">/ 9 done</span>
-          </p>
-          <div className="mt-2 flex gap-2">
-            <span className="rounded-full bg-primary-soft px-3 py-1 text-[12px] font-bold text-primary">
-              ● 7-day streak
-            </span>
-            <span className="rounded-full bg-track px-3 py-1 text-[12px] font-bold text-muted-foreground">
-              3 badges
-            </span>
-          </div>
-        </div>
-      </section>
+      <BucketProgressCard />
 
       {/* 근처 체크인 카드 */}
       <section className="flex items-center gap-4 rounded-card border border-primary/20 bg-primary-soft p-4">
@@ -131,33 +117,5 @@ export default function HomePage() {
         </div>
       </section>
     </div>
-  );
-}
-
-// 진행률 도넛 (SVG)
-function ProgressDonut({ percent }) {
-  const r = 30;
-  const c = 2 * Math.PI * r;
-  return (
-    <svg width="84" height="84" viewBox="0 0 84 84">
-      <circle cx="42" cy="42" r={r} fill="none" stroke="#f0eef3" strokeWidth="9" />
-      <circle
-        cx="42"
-        cy="42"
-        r={r}
-        fill="none"
-        stroke="#7131F5"
-        strokeWidth="9"
-        strokeLinecap="round"
-        strokeDasharray={`${(c * percent) / 100} ${c}`}
-        transform="rotate(-90 42 42)"
-      />
-      <text x="42" y="47" textAnchor="middle" fontSize="17" fontWeight="800" fill="#16131a">
-        {percent}
-        <tspan fontSize="10" fill="#8a8792">
-          %
-        </tspan>
-      </text>
-    </svg>
   );
 }

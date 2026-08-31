@@ -86,6 +86,26 @@ export function usePlaceDetailQuery(contentId, contentTypeId) {
   });
 }
 
+/** BucketListProgress — totalCount/completedCount/progressRate(%) */
+function toBucketProgress(p) {
+  return {
+    totalCount: p.totalCount,
+    completedCount: p.completedCount,
+    progressRate: Number(p.progressRate),
+  };
+}
+
+const fetchBucketProgress = () =>
+  client.get('/api/v1/bucket-lists/progress').then(unwrap).then(toBucketProgress);
+
+export function useBucketProgressQuery(options) {
+  return useQuery({
+    queryKey: ['home', 'bucketProgress'],
+    queryFn: fetchBucketProgress,
+    ...options,
+  });
+}
+
 // recommend/tour 둘 다 백엔드가 페이지네이션을 보장해주지 않아 한 번에 전체를 받아오는 경우가 있다.
 // 그대로 다 보여주면 "한꺼번에 다 로드되는" 느낌이 나므로, 받아온 전체 배열을
 // pageParam(all/offset)에 담아 클라이언트에서 PAGE_SIZE 단위로 잘라서 보여준다.
