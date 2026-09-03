@@ -1,11 +1,19 @@
 import { useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Mic, Send } from 'lucide-react';
+import { Loader2, Send } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import { Button } from '@/shared/components/ui/button';
+import { AudioInput } from './AudioInput';
 import { chatQuerySchema } from './assistSchemas';
 
-export function ChatComposer({ disabled, isWaiting, suggestion, onSuggestionUsed, onSend }) {
+export function ChatComposer({
+  disabled,
+  isWaiting,
+  suggestion,
+  onSuggestionUsed,
+  onSend,
+  onAudio,
+}) {
   const form = useForm({
     resolver: zodResolver(chatQuerySchema),
     defaultValues: { query: '' },
@@ -47,16 +55,7 @@ export function ChatComposer({ disabled, isWaiting, suggestion, onSuggestionUsed
             }
           }}
         />
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-lg"
-          disabled
-          aria-label="음성 입력 (준비 중)"
-          title="음성 입력은 준비 중입니다."
-        >
-          <Mic />
-        </Button>
+        <AudioInput disabled={disabled || isWaiting} onAudio={onAudio} />
         <Button
           type="submit"
           size="icon-lg"
