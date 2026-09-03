@@ -50,7 +50,8 @@ export default function AssistPage() {
             {chat.isWaiting && (
               <Bubble>
                 <span className="flex items-center gap-2 text-muted-foreground">
-                  <Loader2 className="size-4 animate-spin" /> 답변을 준비하고 있어요…
+                  <Loader2 className="size-4 animate-spin" />{' '}
+                  {chat.isTranscribing ? '녹음을 글로 변환하고 있어요…' : '답변을 준비하고 있어요…'}
                 </span>
               </Bubble>
             )}
@@ -87,6 +88,7 @@ export default function AssistPage() {
                 suggestion={suggestion}
                 onSuggestionUsed={clearSuggestion}
                 onSend={chat.sendMessage}
+                onAudio={chat.sendAudio}
               />
             </>
           )}
