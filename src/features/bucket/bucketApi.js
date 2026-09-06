@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { client } from '@/shared/api/client';
 import { getCurrentPosition } from '@/shared/utils/geo';
@@ -28,6 +28,23 @@ export function useBucketListsQuery(filters, enabled = true) {
     queryKey: ['bucket', 'list', conditions],
     queryFn: () => fetchBucketLists(conditions),
     enabled,
+  });
+}
+
+const updateBucketCompletion = ({ bucketListId, isCompleted }) =>
+  client.patch(`/api/v1/bucket-lists/${bucketListId}/completion`, { isCompleted });
+
+export function useUpdateBucketCompletionMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateBucketCompletion,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['bucket'] }),
+        queryClient.invalidateQueries({ queryKey: ['home', 'bucketProgress'] }),
+      ]);
+    },
   });
 }
 
