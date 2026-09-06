@@ -165,6 +165,26 @@ export function useMapPage() {
     }
   }
 
+  // 결과가 모두 보이도록 지도 범위를 맞춘다.
+  // 멀리 떨어진 이상치(타 지역 결과)까지 담으면 과도하게 축소되므로 근거리 결과만 기준으로 삼고,
+  // 결과가 한곳에 몰려 있을 때 과확대되지 않게 레벨 하한을 둔다.
+  const FIT_MAX_DISTANCE_M = 5000;
+  const FIT_MIN_LEVEL = 4;
+  function fitToPlaces(list) {
+    const map = mapRef.current;
+    const kakao = getKakao();
+    if (!map || !kakao) return;
+    const withCoords = list.filter((p) => p.lat != null && p.lng != null);
+    if (withCoords.length === 0) return;
+    const near = withCoords.filter((p) => p.dist == null || p.dist <= FIT_MAX_DISTANCE_M);
+    const targets = near.length > 0 ? near : withCoords.slice(0, 5);
+
+    const bounds = new kakao.maps.LatLngBounds();
+    targets.forEach((p) => bounds.extend(new kakao.maps.LatLng(p.lat, p.lng)));
+    map.setBounds(bounds);
+    if (map.getLevel() < FIT_MIN_LEVEL) map.setLevel(FIT_MIN_LEVEL);
+  }
+
   // ---- 현재 지도 영역 기준 재조회 ----
   async function loadForView() {
     const map = mapRef.current;
@@ -194,6 +214,10 @@ export function useMapPage() {
         result = await mapApi.fetchFestivals(undefined, currentLang);
       setPlaces(result);
       renderMarkers(result);
+      // Pick(recommend)은 위치 기반이 아니라 큐레이션 키워드 검색이라, 결과가 현재 화면 밖에 있을 수 있다.
+      // (예: 명동에서 K-pop 최근접이 2.2km — 기본 화면 가시범위 약 1.3km 를 벗어나 빈 지도로 보임)
+      // 그래서 결과가 보이도록 지도 범위를 맞춘다. idle 재조회 대상이 아니라 루프가 생기지 않는다.
+      if (cat.source === 'recommend') fitToPlaces(result);
       if (result.length === 0 && cat.source !== 'mylist') toast('검색 결과 없음');
     } catch {
       toast.error('데이터를 불러오지 못했어요 (백엔드/키 확인)');
