@@ -106,6 +106,36 @@ export function useBucketProgressQuery(options) {
   });
 }
 
+/** BucketListPreview — 홈 화면 미리보기용 최신 등록 순 상위 N건 */
+const BUCKET_PREVIEW_SIZE = 3;
+
+function toBucketListPreviewItem(b) {
+  return {
+    id: b.bucketListId,
+    title: b.title,
+    category: b.category,
+    isCompleted: b.isCompleted === true,
+    imageUrl: b.imageUrl ?? null,
+    placeName: b.placeName ?? b.address ?? null,
+  };
+}
+
+const fetchBucketListPreview = () =>
+  client
+    .get('/api/v1/bucket-lists', {
+      params: { category: 'ALL', page: 0, size: BUCKET_PREVIEW_SIZE },
+    })
+    .then(unwrap)
+    .then((page) => (page?.content ?? []).map(toBucketListPreviewItem));
+
+export function useBucketListPreviewQuery(options) {
+  return useQuery({
+    queryKey: ['home', 'bucketListPreview'],
+    queryFn: fetchBucketListPreview,
+    ...options,
+  });
+}
+
 // recommend/tour 둘 다 백엔드가 페이지네이션을 보장해주지 않아 한 번에 전체를 받아오는 경우가 있다.
 // 그대로 다 보여주면 "한꺼번에 다 로드되는" 느낌이 나므로, 받아온 전체 배열을
 // pageParam(all/offset)에 담아 클라이언트에서 PAGE_SIZE 단위로 잘라서 보여준다.
