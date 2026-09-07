@@ -136,6 +136,79 @@ export function useBucketListPreviewQuery(options) {
   });
 }
 
+/**
+ * NearbyCheckin — 미완료 버킷리스트 중 현재 위치에서 가장 가까운 항목.
+ * 실제 방문 인증(거리 검증 + completion PATCH)은 지도 화면이 담당하므로,
+ * 여기서는 "근처에 인증 가능한 장소가 있는지"만 판단해 지도로 안내한다.
+ */
+const NEARBY_CHECKIN_RADIUS_METERS = 500;
+
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function toCheckinCandidate(b) {
+  return {
+    bucketListId: b.bucketListId,
+    title: b.title,
+    placeName: b.placeName ?? b.address ?? null,
+    lat: b.latitude != null ? Number(b.latitude) : null,
+    lng: b.longitude != null ? Number(b.longitude) : null,
+  };
+}
+
+const fetchIncompleteBucketLists = () =>
+  client
+    .get('/api/v1/bucket-lists', {
+      params: { category: 'ALL', completed: false, page: 0, size: 100 },
+    })
+    .then(unwrap)
+    .then((page) => (page?.content ?? []).map(toCheckinCandidate));
+
+export function useNearbyCheckinQuery(options) {
+  const geoQuery = useQuery({
+    queryKey: ['geo', 'current'],
+    queryFn: getCurrentPosition,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    ...options,
+  });
+  const coords = geoQuery.data;
+
+  const bucketsQuery = useQuery({
+    queryKey: ['home', 'nearbyCheckinCandidates'],
+    queryFn: fetchIncompleteBucketLists,
+    enabled: options?.enabled !== false && !!coords,
+  });
+
+  let candidate = null;
+  if (coords && bucketsQuery.data) {
+    let nearestDistance = Infinity;
+    for (const b of bucketsQuery.data) {
+      if (b.lat == null || b.lng == null) continue;
+      const distance = haversineMeters(coords.lat, coords.lng, b.lat, b.lng);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        candidate = { ...b, distanceMeters: distance };
+      }
+    }
+    if (candidate && nearestDistance > NEARBY_CHECKIN_RADIUS_METERS) candidate = null;
+  }
+
+  return {
+    candidate,
+    isLoading: geoQuery.isPending || (!!coords && bucketsQuery.isPending),
+    isError: geoQuery.isError || bucketsQuery.isError,
+  };
+}
+
 // recommend/tour 둘 다 백엔드가 페이지네이션을 보장해주지 않아 한 번에 전체를 받아오는 경우가 있다.
 // 그대로 다 보여주면 "한꺼번에 다 로드되는" 느낌이 나므로, 받아온 전체 배열을
 // pageParam(all/offset)에 담아 클라이언트에서 PAGE_SIZE 단위로 잘라서 보여준다.

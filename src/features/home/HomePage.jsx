@@ -4,6 +4,7 @@ import { selectCurrentUser } from '@/features/auth/authSlice';
 import { WeatherOutfitCard } from './WeatherOutfitCard';
 import { NearbyRecommendSection } from './NearbyRecommendSection';
 import { BucketProgressCard } from './BucketProgressCard';
+import { NearbyCheckinCard } from './NearbyCheckinCard';
 import { BucketListPreviewSection } from './BucketListPreviewSection';
 
 export default function HomePage() {
@@ -33,18 +34,7 @@ export default function HomePage() {
       <BucketProgressCard />
 
       {/* 근처 체크인 카드 */}
-      <section className="flex items-center gap-4 rounded-card border border-primary/20 bg-primary-soft p-4">
-        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-xl text-primary">
-          📍
-        </span>
-        <div className="flex-1">
-          <p className="text-[15px] font-extrabold">You’re nearby · Myeongdong</p>
-          <p className="text-[13px] text-muted-foreground">Tap to check in & complete</p>
-        </div>
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-white">
-          ›
-        </span>
-      </section>
+      <NearbyCheckinCard />
 
       {/* 날씨 + 오늘의 추천 복장 카드 */}
       <WeatherOutfitCard />
