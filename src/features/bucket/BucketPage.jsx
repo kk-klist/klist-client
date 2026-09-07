@@ -1,7 +1,10 @@
 import { Plus } from 'lucide-react';
+import { useSelector } from 'react-redux';
 import { useSearchParams } from 'react-router-dom';
 
 import { BucketFilters } from './BucketFilters';
+import { useBucketCopy } from './bucketLocale';
+import { BucketLocaleProvider } from './BucketLocaleProvider';
 import { BucketList } from './BucketList';
 import { BucketRecommendations } from './BucketRecommendations';
 import { useBucketListsQuery } from './bucketApi';
@@ -9,6 +12,7 @@ import { BUCKET_TABS, DEFAULT_FILTERS } from './bucketConstants';
 import { Button } from '@/shared/components/ui/button';
 import { PageHeader } from '@/shared/components/PageHeader';
 import { cn } from '@/shared/utils/cn';
+import { selectCurrentUser } from '@/features/auth/authSlice';
 
 function getFilters(searchParams) {
   const page = Number(searchParams.get('page'));
@@ -21,7 +25,8 @@ function getFilters(searchParams) {
   };
 }
 
-export default function BucketPage() {
+function BucketPageContent() {
+  const copy = useBucketCopy();
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = getFilters(searchParams);
   const isMyBucketList = filters.tab === 'my';
@@ -40,10 +45,10 @@ export default function BucketPage() {
   return (
     <div className="kb-page">
       <PageHeader
-        title="Bucket list"
+        title={copy.myBucketList}
         action={
           <Button size="sm" disabled>
-            <Plus /> Add New
+            <Plus /> {copy.addNew}
           </Button>
         }
       />
@@ -59,7 +64,7 @@ export default function BucketPage() {
             )}
             onClick={() => updateFilters({ tab: tab.value, page: 0 })}
           >
-            {tab.label}
+            {tab.value === 'my' ? copy.myBucketList : copy.recommended}
           </button>
         ))}
       </div>
@@ -73,5 +78,15 @@ export default function BucketPage() {
         <BucketRecommendations filters={filters} onChange={updateFilters} />
       )}
     </div>
+  );
+}
+
+export default function BucketPage() {
+  const language = useSelector(selectCurrentUser)?.preferredLanguage;
+
+  return (
+    <BucketLocaleProvider language={language}>
+      <BucketPageContent />
+    </BucketLocaleProvider>
   );
 }
