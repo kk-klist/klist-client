@@ -31,6 +31,32 @@ export function useBucketListsQuery(filters, enabled = true) {
   });
 }
 
+const fetchAddedBucketLists = () =>
+  client
+    .get('/api/v1/bucket-lists', {
+      params: { category: 'ALL', page: 0, size: 1000 },
+    })
+    .then(unwrap)
+    .then((page) => page?.content ?? []);
+
+export function useAddedBucketListsQuery(enabled = true) {
+  return useQuery({
+    queryKey: ['bucket', 'addedLookup'],
+    queryFn: fetchAddedBucketLists,
+    enabled,
+  });
+}
+
+const fetchBucketList = (bucketListId) =>
+  client.get(`/api/v1/bucket-lists/${bucketListId}`).then(unwrap);
+
+export function useBucketListQuery(bucketListId, enabled = true) {
+  return useQuery({
+    queryKey: ['bucket', 'detail', bucketListId],
+    queryFn: () => fetchBucketList(bucketListId),
+    enabled: enabled && !!bucketListId,
+  });
+}
 const updateBucketCompletion = ({ bucketListId, isCompleted }) =>
   client.patch(`/api/v1/bucket-lists/${bucketListId}/completion`, { isCompleted });
 
@@ -48,12 +74,25 @@ export function useUpdateBucketCompletionMutation() {
   });
 }
 
+const GENRE_TO_CATEGORY = {
+  'K-pop': 'K_POP',
+  'K-drama': 'K_DRAMA',
+  'K-food': 'K_FOOD',
+  'K-beauty': 'K_BEAUTY',
+};
+
 const fetchBucketRecommendations = ({ latitude, longitude }) =>
   client
-    .get('/api/v1/bucket-lists/recommendations', {
-      params: { latitude, longitude },
+    .get('/api/v1/recommend', {
+      params: { lat: latitude, lng: longitude },
     })
-    .then(unwrap);
+    .then(unwrap)
+    .then((recommendations) =>
+      (recommendations ?? []).map((recommendation) => ({
+        ...recommendation,
+        category: GENRE_TO_CATEGORY[recommendation.genre],
+      })),
+    );
 
 function roundCoordinate(coordinate) {
   return Number(coordinate.toFixed(3));
@@ -79,8 +118,8 @@ export function useBucketRecommendationsQuery(enabled = true) {
     queryKey: ['bucket', 'list', conditions],
     queryFn: () =>
       fetchBucketRecommendations({
-        latitude: coordinates.lat,
-        longitude: coordinates.lng,
+        latitude: conditions.latitude,
+        longitude: conditions.longitude,
       }),
     enabled: enabled && !!coordinates,
     staleTime: RECOMMENDATION_STALE_TIME,
@@ -94,4 +133,35 @@ export function useBucketRecommendationsQuery(enabled = true) {
     error: geoQuery.error ?? recommendationQuery.error,
     refetch: geoQuery.isError ? geoQuery.refetch : recommendationQuery.refetch,
   };
+}
+
+const fetchTourDetail = ({ contentId, contentTypeId }) =>
+  client
+    .get(`/api/v1/tour/detail/${encodeURIComponent(contentId)}`, {
+      params: { contentTypeId, lang: 'ko' },
+    })
+    .then(unwrap);
+
+export function useBucketRecommendationDetailQuery(recommendation, enabled = true) {
+  return useQuery({
+    queryKey: ['tour', 'detail', recommendation?.contentId, recommendation?.contentTypeId],
+    queryFn: () => fetchTourDetail(recommendation),
+    enabled: enabled && !!recommendation?.contentId,
+  });
+}
+
+const createBucketList = (request) => client.post('/api/v1/bucket-lists', request).then(unwrap);
+
+export function useCreateBucketListMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createBucketList,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['bucket'] }),
+        queryClient.invalidateQueries({ queryKey: ['home', 'bucketProgress'] }),
+      ]);
+    },
+  });
 }

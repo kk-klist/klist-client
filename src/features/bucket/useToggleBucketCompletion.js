@@ -1,8 +1,10 @@
 import { useUpdateBucketCompletionMutation } from './bucketApi';
+import { useBucketCopy } from './bucketLocale';
 import { toast } from '@/shared/utils/toast';
 
 export function useToggleBucketCompletion(bucketList) {
   const completionMutation = useUpdateBucketCompletionMutation();
+  const copy = useBucketCopy();
 
   const toggleCompletion = () => {
     completionMutation.mutate(
@@ -12,7 +14,7 @@ export function useToggleBucketCompletion(bucketList) {
       },
       {
         onError: (error) => {
-          toast.error(error?.message ?? '완료 상태를 변경하지 못했습니다. 다시 시도해주세요.');
+          toast.error(error?.message ?? copy.toggleError);
         },
       },
     );
