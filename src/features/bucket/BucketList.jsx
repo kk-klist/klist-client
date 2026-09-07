@@ -1,3 +1,7 @@
+import { useState } from 'react';
+
+import { BucketDetailSheet } from './BucketDetailSheet';
+import { useBucketCopy } from './bucketLocale';
 import { BucketListItem } from './BucketListItem';
 import { Button } from '@/shared/components/ui/button';
 import { EmptyState } from '@/shared/components/EmptyState';
@@ -5,6 +9,9 @@ import { ErrorMessage } from '@/shared/components/ErrorMessage';
 import { Spinner } from '@/shared/components/Spinner';
 
 export function BucketList({ query, filters, onPageChange }) {
+  const copy = useBucketCopy();
+  const [selectedBucketList, setSelectedBucketList] = useState(null);
+
   if (query.isLoading) return <Spinner />;
 
   if (query.isError) {
@@ -12,7 +19,7 @@ export function BucketList({ query, filters, onPageChange }) {
       <div className="space-y-2 text-center">
         <ErrorMessage message={query.error?.message} />
         <Button variant="outline" size="sm" onClick={() => query.refetch()}>
-          다시 시도
+          {copy.retry}
         </Button>
       </div>
     );
@@ -22,10 +29,7 @@ export function BucketList({ query, filters, onPageChange }) {
   const bucketLists = page?.content ?? [];
 
   if (bucketLists.length === 0) {
-    const message =
-      filters.category === 'ALL'
-        ? '첫 번째 버킷리스트를 추가해보세요.'
-        : '해당 카테고리의 버킷리스트가 없습니다.';
+    const message = filters.category === 'ALL' ? copy.emptyList : copy.emptyCategory;
     return <EmptyState message={message} />;
   }
 
@@ -33,9 +37,19 @@ export function BucketList({ query, filters, onPageChange }) {
     <div className="space-y-4">
       <div className="flex flex-col gap-3">
         {bucketLists.map((bucketList) => (
-          <BucketListItem key={bucketList.bucketListId} bucketList={bucketList} />
+          <BucketListItem
+            key={bucketList.bucketListId}
+            bucketList={bucketList}
+            onSelect={() => setSelectedBucketList(bucketList)}
+          />
         ))}
       </div>
+
+      <BucketDetailSheet
+        bucketList={selectedBucketList}
+        open={!!selectedBucketList}
+        onOpenChange={(open) => !open && setSelectedBucketList(null)}
+      />
 
       <div className="flex items-center justify-center gap-3">
         <Button
@@ -44,16 +58,18 @@ export function BucketList({ query, filters, onPageChange }) {
           disabled={page.currentPage === 0}
           onClick={() => onPageChange({ page: page.currentPage - 1 })}
         >
-          이전
+          {copy.previous}
         </Button>
-        <span className="text-sm text-muted-foreground">{page.currentPage + 1} 페이지</span>
+        <span className="text-sm text-muted-foreground">
+          {page.currentPage + 1} {copy.page}
+        </span>
         <Button
           variant="outline"
           size="sm"
           disabled={!page.hasNext}
           onClick={() => onPageChange({ page: page.currentPage + 1 })}
         >
-          다음
+          {copy.next}
         </Button>
       </div>
     </div>
