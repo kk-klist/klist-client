@@ -15,12 +15,13 @@ export function useAuthRestore() {
     if (!rt) return;
 
     refreshAccessToken(rt)
-      .then(({ accessToken }) => {
+      .then(({ accessToken, refreshToken }) => {
+        if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
         dispatch(setCredentials({ accessToken, user: null }));
-        return fetchMe();
+        return fetchMe().catch(() => null);
       })
       .then((me) => {
-        dispatch(setUser(me));
+        if (me) dispatch(setUser(me));
       })
       .catch(() => {
         localStorage.removeItem('refreshToken');
