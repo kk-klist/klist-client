@@ -1,9 +1,20 @@
-import { MapPin } from 'lucide-react';
+import { CalendarCheck, MapPin } from 'lucide-react';
 
 import { CATEGORY_STYLES } from './bucketConstants';
 import { useBucketCopy } from './bucketLocale';
 import { useToggleBucketCompletion } from './useToggleBucketCompletion';
 import { cn } from '@/shared/utils/cn';
+
+function formatCompletedDate(completedAt, locale) {
+  if (!completedAt) return null;
+  const date = new Date(completedAt);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat(locale, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(date);
+}
 
 export function BucketListItem({ bucketList, onSelect }) {
   const { isPending, toggleCompletion } = useToggleBucketCompletion(bucketList);
@@ -14,6 +25,9 @@ export function BucketListItem({ bucketList, onSelect }) {
     gradient: 'kb-grad-kdrama',
   };
   const place = bucketList.placeName || bucketList.address;
+  const completedDate = bucketList.isCompleted
+    ? formatCompletedDate(bucketList.completedAt, copy.dateLocale)
+    : null;
 
   return (
     <article className="kb-card flex items-center gap-3.5 p-3.5">
@@ -36,16 +50,23 @@ export function BucketListItem({ bucketList, onSelect }) {
         <div className="min-w-0 flex-1">
           <p className={cn('kb-cat-label', category.color)}>{category.label}</p>
           <p className="text-[15px] font-extrabold leading-snug">{bucketList.title}</p>
-          <span
-            className={cn(
-              'mt-1 inline-flex rounded-md px-2 py-0.5 text-[11px] font-bold',
-              bucketList.isCompleted
-                ? 'bg-success/15 text-success'
-                : 'bg-muted text-muted-foreground',
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <span
+              className={cn(
+                'inline-flex rounded-md px-2 py-0.5 text-[11px] font-bold',
+                bucketList.isCompleted
+                  ? 'bg-success/15 text-success'
+                  : 'bg-muted text-muted-foreground',
+              )}
+            >
+              {bucketList.isCompleted ? `✓ ${copy.completed}` : copy.todo}
+            </span>
+            {completedDate && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-success/10 px-2 py-0.5 text-[11px] font-semibold text-success">
+                <CalendarCheck className="size-3" /> {completedDate}
+              </span>
             )}
-          >
-            {bucketList.isCompleted ? `✓ ${copy.completed}` : copy.todo}
-          </span>
+          </div>
           {place && (
             <p className="mt-1 flex items-center gap-1 truncate text-[12px] text-muted-foreground">
               <MapPin className="size-3" /> {place}
