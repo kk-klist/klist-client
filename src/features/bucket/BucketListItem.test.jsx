@@ -45,6 +45,24 @@ describe('BucketListItem', () => {
     expect(screen.getByRole('button', { name: 'Mark as completed' })).toBeDisabled();
   });
 
+  it('완료 항목은 상태 배지 오른쪽에 완료일을 표시한다', () => {
+    useToggleBucketCompletion.mockReturnValue({ isPending: false, toggleCompletion: vi.fn() });
+    render(
+      <BucketLocaleProvider language="ko">
+        <BucketListItem
+          bucketList={{
+            ...bucketList,
+            isCompleted: true,
+            completedAt: '2026-09-09T14:30:00',
+          }}
+        />
+      </BucketLocaleProvider>,
+    );
+
+    expect(screen.getByText('✓ 완료')).toBeInTheDocument();
+    expect(screen.getByText('2026년 9월 9일')).toBeInTheDocument();
+  });
+
   it('카드 내용을 누르면 버킷리스트 상세를 연다', async () => {
     const onSelect = vi.fn();
     useToggleBucketCompletion.mockReturnValue({ isPending: false, toggleCompletion: vi.fn() });
