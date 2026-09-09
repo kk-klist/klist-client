@@ -1,5 +1,8 @@
-import { CalendarCheck, Map as MapIcon, MapPin, Navigation } from 'lucide-react';
+import { useState } from 'react';
+import { CalendarCheck, Map as MapIcon, MapPin, Navigation, Pencil, Trash2 } from 'lucide-react';
 
+import { BucketDeleteDialog } from './BucketDeleteDialog';
+import { BucketEditSheet } from './BucketEditSheet';
 import { useBucketListQuery } from './bucketApi';
 import { CATEGORY_STYLES } from './bucketConstants';
 import { useBucketCopy } from './bucketLocale';
@@ -42,6 +45,8 @@ function formatCompletedDate(completedAt, locale) {
 }
 
 export function BucketDetailSheet({ bucketList, open, onOpenChange }) {
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const copy = useBucketCopy();
   const detailQuery = useBucketListQuery(bucketList?.bucketListId, open);
   const detail = detailQuery.data ?? bucketList;
@@ -79,9 +84,32 @@ export function BucketDetailSheet({ bucketList, open, onOpenChange }) {
         </div>
 
         <SheetHeader className="space-y-3 px-5 pb-2 pt-5 text-left">
-          <SheetTitle className="text-[22px] font-extrabold leading-tight text-ink">
-            {detail?.title}
-          </SheetTitle>
+          <div className="flex items-start justify-between gap-3">
+            <SheetTitle className="min-w-0 flex-1 text-[22px] font-extrabold leading-tight text-ink">
+              {detail?.title}
+            </SheetTitle>
+            <div className="flex shrink-0 gap-1">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={copy.edit}
+                title={copy.edit}
+                onClick={() => setEditOpen(true)}
+              >
+                <Pencil />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="text-destructive hover:text-destructive"
+                aria-label={copy.delete}
+                title={copy.delete}
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 />
+              </Button>
+            </div>
+          </div>
           <SheetDescription className="sr-only">{copy.detailDescription}</SheetDescription>
           <div className="flex flex-wrap gap-2">
             {detail?.address && (
@@ -141,6 +169,16 @@ export function BucketDetailSheet({ bucketList, open, onOpenChange }) {
           </Button>
         </SheetFooter>
       </SheetContent>
+      <BucketEditSheet bucketList={detail} open={editOpen} onOpenChange={setEditOpen} />
+      <BucketDeleteDialog
+        bucketListId={detail?.bucketListId}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onDeleted={() => {
+          setDeleteOpen(false);
+          onOpenChange(false);
+        }}
+      />
     </Sheet>
   );
 }

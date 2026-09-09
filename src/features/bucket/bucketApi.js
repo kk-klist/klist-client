@@ -165,3 +165,31 @@ export function useCreateBucketListMutation() {
     },
   });
 }
+
+const updateBucketList = ({ bucketListId, request }) =>
+  client.patch(`/api/v1/bucket-lists/${bucketListId}`, request).then(unwrap);
+
+export function useUpdateBucketListMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateBucketList,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bucket'] }),
+  });
+}
+
+const deleteBucketList = (bucketListId) => client.delete(`/api/v1/bucket-lists/${bucketListId}`);
+
+export function useDeleteBucketListMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteBucketList,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['bucket'] }),
+        queryClient.invalidateQueries({ queryKey: ['home', 'bucketProgress'] }),
+      ]);
+    },
+  });
+}
