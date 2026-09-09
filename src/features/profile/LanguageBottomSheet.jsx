@@ -4,10 +4,12 @@ import { SUPPORTED_LANGUAGES } from '@/shared/constants/locationOptions';
 import { cn } from '@/shared/utils/cn';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/shared/components/ui/sheet';
 import { useUpdatePreferredLanguageMutation } from '@/features/profile/profileApi';
+import { useProfileCopy } from './profileLocale';
 
 export function LanguageBottomSheet({ open, onOpenChange }) {
   const dispatch = useDispatch();
   const user = useSelector(selectCurrentUser);
+  const copy = useProfileCopy();
   const { mutate: updatePreferredLanguage, isPending } = useUpdatePreferredLanguageMutation();
 
   function handleSelect(lang) {
@@ -31,7 +33,7 @@ export function LanguageBottomSheet({ open, onOpenChange }) {
         className="mx-auto max-w-[560px] rounded-t-2xl px-0 pb-8"
       >
         <SheetHeader className="px-5 pb-2">
-          <SheetTitle>표시 언어 선택</SheetTitle>
+          <SheetTitle>{copy.languageSheetTitle}</SheetTitle>
         </SheetHeader>
         <ul>
           {SUPPORTED_LANGUAGES.map(({ value, label }) => (

@@ -15,7 +15,8 @@ const authHandlers = {
   onRefresh: async () => {
     const rt = localStorage.getItem('refreshToken');
     if (!rt) return null;
-    const { accessToken } = await refreshAccessToken(rt);
+    const { accessToken, refreshToken } = await refreshAccessToken(rt);
+    if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
     store.dispatch(setCredentials({ accessToken, user: null }));
     return accessToken;
   },
