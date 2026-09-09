@@ -21,7 +21,10 @@ function compressImage(file) {
   });
 }
 
-export function ProfileImageField() {
+export function ProfileImageField({
+  changeLabel = '사진 변경',
+  addLabel = '프로필 사진 추가 (선택)',
+}) {
   const { setValue, watch } = useFormContext();
   const profileImage = watch('profileImage');
   const inputRef = useRef(null);
@@ -46,9 +49,7 @@ export function ProfileImageField() {
           <span className="text-3xl">📷</span>
         )}
       </button>
-      <span className="text-xs text-muted-foreground">
-        {profileImage ? '사진 변경' : '프로필 사진 추가 (선택)'}
-      </span>
+      <span className="text-xs text-muted-foreground">{profileImage ? changeLabel : addLabel}</span>
       <input
         ref={inputRef}
         type="file"

@@ -15,6 +15,8 @@ import { WithdrawConfirmDialog } from './WithdrawConfirmDialog';
 import { useWithdrawMutation } from './profileApi';
 import { useTicketsQuery } from './ticket/ticketApi';
 import { EndTripBottomSheet } from './ticket/EndTripBottomSheet';
+import { getProfileCopy } from './profileLocale';
+import { ProfileLocaleProvider } from './ProfileLocaleProvider';
 
 export default function MyPage() {
   const navigate = useNavigate();
@@ -36,6 +38,8 @@ export default function MyPage() {
   const { mutate: logout, isPending: isLoggingOut } = useLogoutMutation();
   const { mutate: withdraw, isPending: isWithdrawing } = useWithdrawMutation();
 
+  const copy = getProfileCopy(user?.preferredLanguage);
+
   const langLabel =
     SUPPORTED_LANGUAGES.find((l) => l.value === user?.preferredLanguage)?.label ?? '-';
 
@@ -45,249 +49,258 @@ export default function MyPage() {
   };
 
   return (
-    <div className="kb-page">
-      <PageHeader title="My" />
+    <ProfileLocaleProvider language={user?.preferredLanguage}>
+      <div className="kb-page">
+        <PageHeader title="My" />
 
-      {/* 프로필 */}
-      <section>
-        <div className="kb-card flex items-center gap-4 p-5">
-          {isAuthenticated &&
-            (user?.profileImageUrl ? (
-              <img
-                src={user.profileImageUrl}
-                alt=""
-                className="h-16 w-16 rounded-full object-cover ring-2 ring-black/80"
-              />
-            ) : (
-              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-track">
-                <ProfileIcon />
-              </span>
-            ))}
-          <div className="flex-1 space-y-1.5">
-            {isAuthenticated ? (
-              <>
-                <h1 className="text-[24px] font-extrabold tracking-tight">{user?.nickname}</h1>
-                <p className="flex items-center gap-2 text-[18px]" aria-label="국가 및 선호 언어">
-                  <span>{getCountryFlagEmoji(user?.nationality)}</span>
-                  <span className="text-[14px] font-semibold text-muted-foreground">
-                    {langLabel}
-                  </span>
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-[14px] font-semibold text-muted-foreground">
-                  로그인하고 시작해요
-                </p>
-                <button
-                  type="button"
-                  className="rounded-full bg-primary px-4 py-1.5 text-[13px] font-bold text-white"
-                  onClick={() => navigate('/login')}
-                >
-                  로그인
-                </button>
-              </>
+        {/* 프로필 */}
+        <section>
+          <div className="kb-card flex items-center gap-4 p-5">
+            {isAuthenticated &&
+              (user?.profileImageUrl ? (
+                <img
+                  src={user.profileImageUrl}
+                  alt=""
+                  className="h-16 w-16 rounded-full object-cover ring-2 ring-black/80"
+                />
+              ) : (
+                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-track">
+                  <ProfileIcon />
+                </span>
+              ))}
+            <div className="flex-1 space-y-1.5">
+              {isAuthenticated ? (
+                <>
+                  <h1 className="text-[24px] font-extrabold tracking-tight">{user?.nickname}</h1>
+                  <p
+                    className="flex items-center gap-2 text-[18px]"
+                    aria-label={copy.nationalityAndLanguageLabel}
+                  >
+                    <span>{getCountryFlagEmoji(user?.nationality)}</span>
+                    <span className="text-[14px] font-semibold text-muted-foreground">
+                      {langLabel}
+                    </span>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-[14px] font-semibold text-muted-foreground">
+                    {copy.loginPrompt}
+                  </p>
+                  <button
+                    type="button"
+                    className="rounded-full bg-primary px-4 py-1.5 text-[13px] font-bold text-white"
+                    onClick={() => navigate('/login')}
+                  >
+                    {copy.login}
+                  </button>
+                </>
+              )}
+            </div>
+            {isAuthenticated && (
+              <button
+                type="button"
+                onClick={() => navigate('/profile/edit')}
+                className="rounded-full bg-track px-3 py-1.5 text-[12px] font-bold text-muted-foreground"
+              >
+                {copy.edit}
+              </button>
             )}
           </div>
-          {isAuthenticated && (
+        </section>
+
+        {/* My tickets */}
+        <section>
+          <div className="flex items-center justify-between">
+            <h2 className="kb-section">My tickets</h2>
             <button
               type="button"
-              onClick={() => navigate('/profile/edit')}
-              className="rounded-full bg-track px-3 py-1.5 text-[12px] font-bold text-muted-foreground"
-            >
-              편집
-            </button>
-          )}
-        </div>
-      </section>
-
-      {/* My tickets (스펙 2.5 — 항공권 카드) */}
-      <section>
-        <div className="flex items-center justify-between">
-          <h2 className="kb-section">My tickets</h2>
-          <button
-            type="button"
-            className="rounded-full bg-primary px-4 py-2 text-[13px] font-bold text-white"
-            onClick={() => {
-              if (isAuthenticated) setEndTripSheetOpen(true);
-              else setLoginDialogOpen(true);
-            }}
-          >
-            여행 종료
-          </button>
-        </div>
-
-        {ticketsLoading ? (
-          <div className="mt-3 w-full space-y-3 overflow-hidden rounded-card bg-white p-4 shadow-card">
-            <div className="h-9 w-full animate-pulse rounded bg-track" />
-            <div className="h-8 w-full animate-pulse rounded bg-track" />
-            <div className="h-4 w-2/3 animate-pulse rounded bg-track" />
-          </div>
-        ) : ticketsError ? (
-          <p className="mt-3 text-sm text-destructive">티켓을 불러오지 못했어요.</p>
-        ) : tickets.length === 0 ? (
-          <div className="mt-3 rounded-card bg-white p-6 text-center shadow-card">
-            <p className="text-[14px] font-bold text-muted-foreground">아직 여행 티켓이 없어요</p>
-            <p className="mt-1 text-[12px] text-muted2">여행 종료으로 첫 티켓을 만들어보세요</p>
-          </div>
-        ) : (
-          <>
-            <div
-              ref={ticketScrollRef}
-              onScroll={() => {
-                const el = ticketScrollRef.current;
-                if (el) setActiveTicketIdx(Math.round(el.scrollLeft / el.clientWidth));
+              className="rounded-full bg-primary px-4 py-2 text-[13px] font-bold text-white"
+              onClick={() => {
+                if (isAuthenticated) setEndTripSheetOpen(true);
+                else setLoginDialogOpen(true);
               }}
-              className="mt-3 flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
-              {tickets.map((ticket) => (
-                <div key={ticket.ticketId} className="w-full shrink-0 snap-center">
-                  <div className="block w-full overflow-hidden rounded-card text-left shadow-card">
-                    <div className="flex items-center justify-between bg-brand-gradient px-4 py-2.5 text-white">
-                      <span className="text-[12px] font-extrabold tracking-wide">
-                        K-BUCKET · TRAVEL TICKET
-                      </span>
-                      <span className="text-[11px] font-bold opacity-80">
-                        NO.{String(ticket.visitCount).padStart(3, '0')}
-                      </span>
-                    </div>
-                    <div className="bg-white px-4 py-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-[26px] font-extrabold leading-none">
-                            {ticketDay(ticket.startDate)}
-                          </p>
-                          <p className="mt-1 text-[12px] text-muted-foreground">
-                            {ticketMonthYear(ticket.startDate)}
-                          </p>
-                          <p className="mt-0.5 text-[11px] text-muted-foreground">출발</p>
-                        </div>
-                        <div className="mx-3 flex-1 border-t border-dashed border-line2" />
-                        <span className="text-primary">✈</span>
-                        <div className="mx-3 flex-1 border-t border-dashed border-line2" />
-                        <div className="text-right">
-                          <p className="text-[26px] font-extrabold leading-none">
-                            {ticketDay(ticket.endDate)}
-                          </p>
-                          <p className="mt-1 text-[12px] text-muted-foreground">
-                            {ticketMonthYear(ticket.endDate)}
-                          </p>
-                          <p className="mt-0.5 text-[11px] text-muted-foreground">도착</p>
-                        </div>
-                      </div>
-                      <div className="mt-4 space-y-2 text-[13px]">
-                        <span className="font-bold">
-                          {ticket.startDate.replace(/-/g, '.')} –{' '}
-                          {ticket.endDate.replace(/-/g, '.')}
+              {copy.endTrip}
+            </button>
+          </div>
+
+          {ticketsLoading ? (
+            <div className="mt-3 w-full space-y-3 overflow-hidden rounded-card bg-white p-4 shadow-card">
+              <div className="h-9 w-full animate-pulse rounded bg-track" />
+              <div className="h-8 w-full animate-pulse rounded bg-track" />
+              <div className="h-4 w-2/3 animate-pulse rounded bg-track" />
+            </div>
+          ) : ticketsError ? (
+            <p className="mt-3 text-sm text-destructive">{copy.ticketsError}</p>
+          ) : tickets.length === 0 ? (
+            <div className="mt-3 rounded-card bg-white p-6 text-center shadow-card">
+              <p className="text-[14px] font-bold text-muted-foreground">{copy.ticketsEmpty}</p>
+              <p className="mt-1 text-[12px] text-muted2">{copy.ticketsEmptyHint}</p>
+            </div>
+          ) : (
+            <>
+              <div
+                ref={ticketScrollRef}
+                onScroll={() => {
+                  const el = ticketScrollRef.current;
+                  if (el) setActiveTicketIdx(Math.round(el.scrollLeft / el.clientWidth));
+                }}
+                className="mt-3 flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              >
+                {tickets.map((ticket) => (
+                  <div key={ticket.ticketId} className="w-full shrink-0 snap-center">
+                    <div className="block w-full overflow-hidden rounded-card text-left shadow-card">
+                      <div className="flex items-center justify-between bg-brand-gradient px-4 py-2.5 text-white">
+                        <span className="text-[12px] font-extrabold tracking-wide">
+                          K-BUCKET · TRAVEL TICKET
                         </span>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="font-bold text-success">
-                            완료 {ticket.completedCount}
+                        <span className="text-[11px] font-bold opacity-80">
+                          NO.{String(ticket.visitCount).padStart(3, '0')}
+                        </span>
+                      </div>
+                      <div className="bg-white px-4 py-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-[26px] font-extrabold leading-none">
+                              {ticketDay(ticket.startDate)}
+                            </p>
+                            <p className="mt-1 text-[12px] text-muted-foreground">
+                              {ticketMonthYear(ticket.startDate)}
+                            </p>
+                            <p className="mt-0.5 text-[11px] text-muted-foreground">
+                              {copy.departure}
+                            </p>
+                          </div>
+                          <div className="mx-3 flex-1 border-t border-dashed border-line2" />
+                          <span className="text-primary">✈</span>
+                          <div className="mx-3 flex-1 border-t border-dashed border-line2" />
+                          <div className="text-right">
+                            <p className="text-[26px] font-extrabold leading-none">
+                              {ticketDay(ticket.endDate)}
+                            </p>
+                            <p className="mt-1 text-[12px] text-muted-foreground">
+                              {ticketMonthYear(ticket.endDate)}
+                            </p>
+                            <p className="mt-0.5 text-[11px] text-muted-foreground">
+                              {copy.arrival}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-4 space-y-2 text-[13px]">
+                          <span className="font-bold">
+                            {ticket.startDate.replace(/-/g, '.')} –{' '}
+                            {ticket.endDate.replace(/-/g, '.')}
                           </span>
-                          {ticket.categories.map((cat) => (
-                            <span
-                              key={cat}
-                              className="rounded-full bg-track px-2 py-0.5 text-[11px] font-semibold text-muted-foreground"
-                            >
-                              {cat}
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="font-bold text-success">
+                              {copy.completedCount(ticket.completedCount)}
                             </span>
-                          ))}
+                            {ticket.categories.map((cat) => (
+                              <span
+                                key={cat}
+                                className="rounded-full bg-track px-2 py-0.5 text-[11px] font-semibold text-muted-foreground"
+                              >
+                                {cat}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-            {tickets.length > 1 && (
-              <div className="mt-2 flex items-center justify-center gap-3">
-                <button
-                  type="button"
-                  disabled={activeTicketIdx === 0}
-                  onClick={() => {
-                    const el = ticketScrollRef.current;
-                    if (el) el.scrollBy({ left: -el.clientWidth, behavior: 'smooth' });
-                  }}
-                  className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-opacity disabled:opacity-30"
-                >
-                  <ChevronLeftIcon size={16} />
-                </button>
-                <div className="flex gap-1.5">
-                  {tickets.map((_, i) => (
-                    <span
-                      key={i}
-                      className={cn(
-                        'h-1.5 rounded-full transition-all duration-200',
-                        i === activeTicketIdx ? 'w-4 bg-primary' : 'w-1.5 bg-track',
-                      )}
-                    />
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  disabled={activeTicketIdx === tickets.length - 1}
-                  onClick={() => {
-                    const el = ticketScrollRef.current;
-                    if (el) el.scrollBy({ left: el.clientWidth, behavior: 'smooth' });
-                  }}
-                  className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-opacity disabled:opacity-30"
-                >
-                  <ChevronRightIcon size={16} />
-                </button>
+                ))}
               </div>
+              {tickets.length > 1 && (
+                <div className="mt-2 flex items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    disabled={activeTicketIdx === 0}
+                    onClick={() => {
+                      const el = ticketScrollRef.current;
+                      if (el) el.scrollBy({ left: -el.clientWidth, behavior: 'smooth' });
+                    }}
+                    className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-opacity disabled:opacity-30"
+                  >
+                    <ChevronLeftIcon size={16} />
+                  </button>
+                  <div className="flex gap-1.5">
+                    {tickets.map((_, i) => (
+                      <span
+                        key={i}
+                        className={cn(
+                          'h-1.5 rounded-full transition-all duration-200',
+                          i === activeTicketIdx ? 'w-4 bg-primary' : 'w-1.5 bg-track',
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    disabled={activeTicketIdx === tickets.length - 1}
+                    onClick={() => {
+                      const el = ticketScrollRef.current;
+                      if (el) el.scrollBy({ left: el.clientWidth, behavior: 'smooth' });
+                    }}
+                    className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-opacity disabled:opacity-30"
+                  >
+                    <ChevronRightIcon size={16} />
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </section>
+
+        {/* 설정 */}
+        <section>
+          <h2 className="kb-section">Settings</h2>
+          <div className="kb-card mt-3 divide-y divide-line">
+            <SettingRow
+              icon="A문"
+              label="Language"
+              value={isAuthenticated ? langLabel : '-'}
+              valueClass="text-primary"
+              onClick={handleLanguageClick}
+            />
+            {isAuthenticated && (
+              <SettingRow
+                icon="🚪"
+                label={copy.logout}
+                labelClass="text-destructive"
+                value=""
+                onClick={() => setLogoutDialogOpen(true)}
+              />
             )}
-          </>
-        )}
-      </section>
+            {isAuthenticated && (
+              <SettingRow
+                icon="⚠️"
+                label={copy.withdraw}
+                labelClass="text-destructive"
+                value=""
+                onClick={() => setWithdrawDialogOpen(true)}
+              />
+            )}
+          </div>
+        </section>
 
-      {/* 설정 */}
-      <section>
-        <h2 className="kb-section">Settings</h2>
-        <div className="kb-card mt-3 divide-y divide-line">
-          <SettingRow
-            icon="A문"
-            label="Language"
-            value={isAuthenticated ? langLabel : '-'}
-            valueClass="text-primary"
-            onClick={handleLanguageClick}
-          />
-          {isAuthenticated && (
-            <SettingRow
-              icon="🚪"
-              label="로그아웃"
-              labelClass="text-destructive"
-              value=""
-              onClick={() => setLogoutDialogOpen(true)}
-            />
-          )}
-          {isAuthenticated && (
-            <SettingRow
-              icon="⚠️"
-              label="탈퇴하기"
-              labelClass="text-destructive"
-              value=""
-              onClick={() => setWithdrawDialogOpen(true)}
-            />
-          )}
-        </div>
-      </section>
-
-      <EndTripBottomSheet open={endTripSheetOpen} onOpenChange={setEndTripSheetOpen} />
-      <LanguageBottomSheet open={languageSheetOpen} onOpenChange={setLanguageSheetOpen} />
-      <LoginRequiredDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} />
-      <LogoutConfirmDialog
-        open={logoutDialogOpen}
-        onOpenChange={setLogoutDialogOpen}
-        onConfirm={logout}
-        isPending={isLoggingOut}
-      />
-      <WithdrawConfirmDialog
-        open={withdrawDialogOpen}
-        onOpenChange={setWithdrawDialogOpen}
-        onConfirm={withdraw}
-        isPending={isWithdrawing}
-      />
-    </div>
+        <EndTripBottomSheet open={endTripSheetOpen} onOpenChange={setEndTripSheetOpen} />
+        <LanguageBottomSheet open={languageSheetOpen} onOpenChange={setLanguageSheetOpen} />
+        <LoginRequiredDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} />
+        <LogoutConfirmDialog
+          open={logoutDialogOpen}
+          onOpenChange={setLogoutDialogOpen}
+          onConfirm={logout}
+          isPending={isLoggingOut}
+        />
+        <WithdrawConfirmDialog
+          open={withdrawDialogOpen}
+          onOpenChange={setWithdrawDialogOpen}
+          onConfirm={withdraw}
+          isPending={isWithdrawing}
+        />
+      </div>
+    </ProfileLocaleProvider>
   );
 }
 

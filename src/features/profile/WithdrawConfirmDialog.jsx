@@ -9,8 +9,10 @@ import {
   DialogTitle,
 } from '@/shared/components/ui/dialog';
 import { withdrawSchema } from './profileSchemas';
+import { useProfileCopy } from './profileLocale';
 
 export function WithdrawConfirmDialog({ open, onOpenChange, onConfirm, isPending }) {
+  const copy = useProfileCopy();
   const {
     register,
     handleSubmit,
@@ -32,18 +34,18 @@ export function WithdrawConfirmDialog({ open, onOpenChange, onConfirm, isPending
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>정말 탈퇴하시겠습니까?</DialogTitle>
+          <DialogTitle>{copy.withdrawTitle}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <ul className="list-disc space-y-1 pl-5 text-[13px] text-muted-foreground">
-            <li>버킷리스트, 여행 티켓 등 모든 데이터가 삭제됩니다.</li>
-            <li>삭제된 데이터는 복구할 수 없습니다.</li>
+            <li>{copy.withdrawWarningData}</li>
+            <li>{copy.withdrawWarningNoRecovery}</li>
           </ul>
 
           <textarea
             {...register('reason')}
-            placeholder="탈퇴 사유를 입력해주세요."
+            placeholder={copy.withdrawReasonPlaceholder}
             rows={4}
             disabled={isPending}
             className="w-full resize-none rounded-lg border border-line bg-background p-3 text-[14px] placeholder:text-muted2 focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
@@ -52,14 +54,14 @@ export function WithdrawConfirmDialog({ open, onOpenChange, onConfirm, isPending
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isPending}>
-            아니오
+            {copy.no}
           </Button>
           <Button
             variant="destructive"
             onClick={handleSubmit(onSubmit)}
             disabled={!isValid || isPending}
           >
-            예
+            {copy.yes}
           </Button>
         </DialogFooter>
       </DialogContent>
