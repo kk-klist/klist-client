@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { useSearchParams } from 'react-router-dom';
 
+import { BucketCreateSheet } from './BucketCreateSheet';
 import { BucketFilters } from './BucketFilters';
 import { useBucketCopy } from './bucketLocale';
 import { BucketLocaleProvider } from './BucketLocaleProvider';
@@ -26,6 +28,7 @@ function getFilters(searchParams) {
 }
 
 function BucketPageContent() {
+  const [createOpen, setCreateOpen] = useState(false);
   const copy = useBucketCopy();
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = getFilters(searchParams);
@@ -47,7 +50,7 @@ function BucketPageContent() {
       <PageHeader
         title={copy.myBucketList}
         action={
-          <Button size="sm" disabled>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus /> {copy.addNew}
           </Button>
         }
@@ -77,6 +80,7 @@ function BucketPageContent() {
       ) : (
         <BucketRecommendations filters={filters} onChange={updateFilters} />
       )}
+      <BucketCreateSheet open={createOpen} onOpenChange={setCreateOpen} />
     </div>
   );
 }
