@@ -13,13 +13,31 @@ export function useCreateBucketList(open, onCreated) {
   const submittedRef = useRef(false);
   const form = useForm({
     resolver: zodResolver(createBucketDirectSchema(copy)),
-    defaultValues: { title: '', description: '', category: '' },
+    defaultValues: {
+      title: '',
+      description: '',
+      category: '',
+      placeName: '',
+      address: '',
+      latitude: null,
+      longitude: null,
+      imageUrl: null,
+    },
   });
 
   useEffect(() => {
     if (!open) return;
     submittedRef.current = false;
-    form.reset({ title: '', description: '', category: '' });
+    form.reset({
+      title: '',
+      description: '',
+      category: '',
+      placeName: '',
+      address: '',
+      latitude: null,
+      longitude: null,
+      imageUrl: null,
+    });
   }, [form, open]);
 
   const submit = (values) => {
@@ -30,11 +48,11 @@ export function useCreateBucketList(open, onCreated) {
         title: values.title.trim(),
         description: values.description.trim() || null,
         category: values.category,
-        placeName: null,
-        address: null,
-        latitude: null,
-        longitude: null,
-        imageUrl: null,
+        placeName: values.placeName || null,
+        address: values.address || null,
+        latitude: values.latitude,
+        longitude: values.longitude,
+        imageUrl: values.imageUrl,
       },
       {
         onSuccess: () => {

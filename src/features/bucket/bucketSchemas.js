@@ -11,4 +11,9 @@ export const createBucketUpdateSchema = createBucketRecommendationSchema;
 export const createBucketDirectSchema = (copy) =>
   createBucketRecommendationSchema(copy).extend({
     category: z.string().min(1, copy.categoryRequired),
+    placeName: z.string(),
+    address: z.string(),
+    latitude: z.number().nullable(),
+    longitude: z.number().nullable(),
+    imageUrl: z.string().nullable(),
   });
