@@ -21,9 +21,15 @@ export const CATEGORY_STYLES = {
 export const DEFAULT_FILTERS = {
   tab: 'my',
   category: 'ALL',
+  completed: 'ALL',
   sort: 'DISTANCE',
-  page: 0,
 };
+
+export const BUCKET_COMPLETION_FILTERS = [
+  { value: 'ALL', copyKey: 'all' },
+  { value: 'TODO', copyKey: 'todo' },
+  { value: 'COMPLETED', copyKey: 'completed' },
+];
 
 export const RECOMMENDATION_SORTS = [
   { label: '가까운 순', value: 'DISTANCE' },

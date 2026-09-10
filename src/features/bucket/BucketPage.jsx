@@ -17,13 +17,11 @@ import { cn } from '@/shared/utils/cn';
 import { selectCurrentUser } from '@/features/auth/authSlice';
 
 function getFilters(searchParams) {
-  const page = Number(searchParams.get('page'));
-
   return {
     tab: searchParams.get('tab') ?? DEFAULT_FILTERS.tab,
     category: searchParams.get('category') ?? DEFAULT_FILTERS.category,
+    completed: searchParams.get('completed') ?? DEFAULT_FILTERS.completed,
     sort: searchParams.get('sort') ?? DEFAULT_FILTERS.sort,
-    page: Number.isInteger(page) && page >= 0 ? page : DEFAULT_FILTERS.page,
   };
 }
 
@@ -65,7 +63,7 @@ function BucketPageContent() {
               'kb-segment__btn',
               filters.tab === tab.value && 'kb-segment__btn--active',
             )}
-            onClick={() => updateFilters({ tab: tab.value, page: 0 })}
+            onClick={() => updateFilters({ tab: tab.value })}
           >
             {tab.value === 'my' ? copy.myBucketList : copy.recommended}
           </button>
@@ -75,7 +73,7 @@ function BucketPageContent() {
       {isMyBucketList ? (
         <>
           <BucketFilters filters={filters} onChange={updateFilters} />
-          <BucketList query={bucketQuery} filters={filters} onPageChange={updateFilters} />
+          <BucketList query={bucketQuery} filters={filters} />
         </>
       ) : (
         <BucketRecommendations filters={filters} onChange={updateFilters} />
