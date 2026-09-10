@@ -150,6 +150,22 @@ export function useBucketRecommendationDetailQuery(recommendation, enabled = tru
   });
 }
 
+const fetchBucketPlaceSearch = (keyword) =>
+  client
+    .get('/api/v1/tour/search', { params: { keyword, lang: 'ko' } })
+    .then(unwrap)
+    .then((places) => places ?? []);
+
+export function useBucketPlaceSearchQuery(keyword, enabled = true) {
+  return useQuery({
+    queryKey: ['bucket', 'placeSearch', keyword],
+    queryFn: () => fetchBucketPlaceSearch(keyword),
+    enabled: enabled && !!keyword,
+    staleTime: 10 * 60 * 1000,
+    retry: 1,
+  });
+}
+
 const createBucketList = (request) => client.post('/api/v1/bucket-lists', request).then(unwrap);
 
 export function useCreateBucketListMutation() {
