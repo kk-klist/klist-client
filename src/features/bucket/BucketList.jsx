@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { BucketDetailSheet } from './BucketDetailSheet';
 import { useBucketCopy } from './bucketLocale';
@@ -8,9 +8,24 @@ import { EmptyState } from '@/shared/components/EmptyState';
 import { ErrorMessage } from '@/shared/components/ErrorMessage';
 import { Spinner } from '@/shared/components/Spinner';
 
-export function BucketList({ query, filters, onPageChange }) {
+export function BucketList({ query, filters }) {
   const copy = useBucketCopy();
   const [selectedBucketList, setSelectedBucketList] = useState(null);
+  const loadMoreRef = useRef(null);
+  const { fetchNextPage, hasNextPage, isFetchingNextPage } = query;
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !hasNextPage) return undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !isFetchingNextPage) fetchNextPage();
+      },
+      { rootMargin: '300px 0px' },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   if (query.isLoading) return <Spinner />;
 
@@ -25,8 +40,7 @@ export function BucketList({ query, filters, onPageChange }) {
     );
   }
 
-  const page = query.data;
-  const bucketLists = page?.content ?? [];
+  const bucketLists = query.data?.pages.flatMap((page) => page.content ?? []) ?? [];
 
   if (bucketLists.length === 0) {
     const message = filters.category === 'ALL' ? copy.emptyList : copy.emptyCategory;
@@ -51,26 +65,21 @@ export function BucketList({ query, filters, onPageChange }) {
         onOpenChange={(open) => !open && setSelectedBucketList(null)}
       />
 
-      <div className="flex items-center justify-center gap-3">
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={page.currentPage === 0}
-          onClick={() => onPageChange({ page: page.currentPage - 1 })}
-        >
-          {copy.previous}
-        </Button>
-        <span className="text-sm text-muted-foreground">
-          {page.currentPage + 1} {copy.page}
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={!page.hasNext}
-          onClick={() => onPageChange({ page: page.currentPage + 1 })}
-        >
-          {copy.next}
-        </Button>
+      <div ref={loadMoreRef} className="min-h-3" aria-hidden>
+        {query.isFetchingNextPage && (
+          <div className="space-y-3 pt-1">
+            {[0, 1].map((index) => (
+              <div key={index} className="kb-card flex animate-pulse items-center gap-3.5 p-3.5">
+                <div className="h-[72px] w-[72px] shrink-0 rounded-thumb bg-track" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-16 rounded bg-track" />
+                  <div className="h-4 w-2/3 rounded bg-track" />
+                  <div className="h-3 w-1/2 rounded bg-track" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

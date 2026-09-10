@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { client } from '@/shared/api/client';
 import { getCurrentPosition } from '@/shared/utils/geo';
@@ -7,11 +7,12 @@ const PAGE_SIZE = 10;
 const RECOMMENDATION_STALE_TIME = 30 * 60 * 1000;
 const unwrap = (response) => response?.data ?? response;
 
-const fetchBucketLists = ({ category, page }) =>
+const fetchBucketLists = ({ category, completed, page }) =>
   client
     .get('/api/v1/bucket-lists', {
       params: {
         category,
+        ...(completed !== 'ALL' && { completed: completed === 'COMPLETED' }),
         page,
         size: PAGE_SIZE,
       },
@@ -21,12 +22,14 @@ const fetchBucketLists = ({ category, page }) =>
 export function useBucketListsQuery(filters, enabled = true) {
   const conditions = {
     category: filters.category,
-    page: filters.page,
+    completed: filters.completed,
   };
 
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['bucket', 'list', conditions],
-    queryFn: () => fetchBucketLists(conditions),
+    queryFn: ({ pageParam }) => fetchBucketLists({ ...conditions, page: pageParam }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => (lastPage.hasNext ? lastPage.currentPage + 1 : undefined),
     enabled,
   });
 }
