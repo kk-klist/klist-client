@@ -1,6 +1,9 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSelector } from 'react-redux';
 import { client } from '@/shared/api/client';
 import { getCurrentPosition } from '@/shared/utils/geo';
+import { selectIsAuthenticated } from '@/features/auth/authSlice';
 
 const NEARBY_RADIUS_METERS = 3000;
 const PAGE_SIZE = 10;
@@ -236,7 +239,38 @@ async function fetchNearbyPage(lat, lng, pageParam) {
   return sliceAll(tourAll, 0);
 }
 
+// 이미 내 버킷리스트에 담은 장소인지 확인 — 장소명 또는 좌표(소수점 5자리 이내) 일치로 판단
+const fetchMyBucketPlaces = () =>
+  client
+    .get('/api/v1/bucket-lists', { params: { category: 'ALL', page: 0, size: 1000 } })
+    .then(unwrap)
+    .then((page) => page?.content ?? []);
+
+function useMyBucketPlacesQuery(enabled) {
+  return useQuery({
+    queryKey: ['bucket', 'addedLookup'],
+    queryFn: fetchMyBucketPlaces,
+    enabled,
+  });
+}
+
+function isPlaceInMyBucket(place, bucketPlaces) {
+  return (bucketPlaces ?? []).some((b) => {
+    const sameName =
+      b.placeName?.trim().toLocaleLowerCase() === place.title?.trim().toLocaleLowerCase();
+    const sameCoordinates =
+      b.latitude != null &&
+      b.longitude != null &&
+      place.lat != null &&
+      place.lng != null &&
+      Math.abs(Number(b.latitude) - place.lat) < 0.00001 &&
+      Math.abs(Number(b.longitude) - place.lng) < 0.00001;
+    return sameName || sameCoordinates;
+  });
+}
+
 export function useNearbyRecommendQuery() {
+  const isAuthenticated = useSelector(selectIsAuthenticated);
   const geoQuery = useQuery({
     queryKey: ['geo', 'current'],
     queryFn: getCurrentPosition,
@@ -252,9 +286,22 @@ export function useNearbyRecommendQuery() {
     getNextPageParam: (lastPage) => lastPage.nextPageParam,
     enabled: !!coords,
   });
+  const myPlacesQuery = useMyBucketPlacesQuery(isAuthenticated);
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = query;
+
+  const fetchedPlaces = query.data?.pages.flatMap((p) => p.items) ?? [];
+  const places = fetchedPlaces.filter((place) => !isPlaceInMyBucket(place, myPlacesQuery.data));
+
+  // 담은 장소를 걸러내고 나면 현재 페이지가 통째로 비어 보일 수 있는데,
+  // 스크롤 트리거는 화면에 실제로 렌더된 콘텐츠 길이에 의존하므로 그 경우 다음 페이지를 바로 이어 받아온다.
+  useEffect(() => {
+    if (places.length === 0 && fetchedPlaces.length > 0 && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [places.length, fetchedPlaces.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return {
-    places: query.data?.pages.flatMap((p) => p.items) ?? [],
+    places,
     // coords 가 없는 동안은 geoQuery 가 아직 진행 중일 때만 로딩 — geoQuery 가 실패했으면(isError) 무한 로딩 대신 에러로 빠진다.
     isLoading: geoQuery.isPending || (!!coords && query.isPending),
     isError: geoQuery.isError || query.isError,
@@ -262,4 +309,40 @@ export function useNearbyRecommendQuery() {
     isFetchingNextPage: query.isFetchingNextPage,
     fetchNextPage: query.fetchNextPage,
   };
+}
+
+export const PLACE_CATEGORIES = [
+  { value: 'K_POP', label: 'K-POP' },
+  { value: 'K_DRAMA', label: 'K-DRAMA' },
+  { value: 'K_FOOD', label: 'K-FOOD' },
+  { value: 'K_BEAUTY', label: 'K-BEAUTY' },
+];
+
+const GENRE_TO_CATEGORY = {
+  'K-pop': 'K_POP',
+  'K-drama': 'K_DRAMA',
+  'K-food': 'K_FOOD',
+  'K-beauty': 'K_BEAUTY',
+};
+
+export function genreToCategory(genre) {
+  return GENRE_TO_CATEGORY[genre] ?? '';
+}
+
+/** 근처 추천 장소를 버킷리스트에 담기 */
+const addPlaceToBucket = (request) => client.post('/api/v1/bucket-lists', request).then(unwrap);
+
+export function useAddPlaceToBucketMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: addPlaceToBucket,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['bucket'] }),
+        queryClient.invalidateQueries({ queryKey: ['home', 'bucketProgress'] }),
+        queryClient.invalidateQueries({ queryKey: ['home', 'bucketListPreview'] }),
+      ]);
+    },
+  });
 }
