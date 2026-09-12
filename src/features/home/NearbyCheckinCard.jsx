@@ -5,20 +5,22 @@ import { ErrorMessage } from '@/shared/components/ErrorMessage';
 import { EmptyState } from '@/shared/components/EmptyState';
 import { selectIsAuthenticated } from '@/features/auth/authSlice';
 import { useNearbyCheckinQuery } from './homeApi';
+import { useHomeCopy } from './homeLocale';
 import { LoginPromptCard } from './LoginPromptCard';
 
 export function NearbyCheckinCard() {
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const navigate = useNavigate();
   const { candidate, isLoading, isError } = useNearbyCheckinQuery({ enabled: isAuthenticated });
+  const copy = useHomeCopy();
 
   if (!isAuthenticated) {
-    return <LoginPromptCard message="로그인하고 근처 체크인 확인하기" />;
+    return <LoginPromptCard message={copy.loginPromptCheckin} />;
   }
 
   if (isLoading) return <Spinner />;
-  if (isError) return <ErrorMessage message="근처 체크인 정보를 불러올 수 없어요." />;
-  if (!candidate) return <EmptyState message="근처에 체크인할 버킷리스트가 없어요." />;
+  if (isError) return <ErrorMessage message={copy.checkinError} />;
+  if (!candidate) return <EmptyState message={copy.checkinEmpty} />;
 
   const place = candidate.placeName || candidate.title;
 
@@ -32,8 +34,8 @@ export function NearbyCheckinCard() {
         📍
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[15px] font-extrabold">You’re nearby · {place}</p>
-        <p className="text-[13px] text-muted-foreground">Tap to check in & complete</p>
+        <p className="truncate text-[15px] font-extrabold">{copy.nearbyYou(place)}</p>
+        <p className="text-[13px] text-muted-foreground">{copy.tapToCheckin}</p>
       </div>
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-white">
         ›

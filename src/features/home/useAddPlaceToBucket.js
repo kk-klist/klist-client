@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 
 import { genreToCategory, useAddPlaceToBucketMutation } from './homeApi';
+import { useHomeCopy } from './homeLocale';
 import { addPlaceToBucketSchema } from './homeSchemas';
 import { toast } from '@/shared/utils/toast';
 
@@ -16,10 +17,11 @@ function cleanDescription(value) {
 }
 
 export function useAddPlaceToBucket(place, onAdded, open = true) {
+  const copy = useHomeCopy();
   const mutation = useAddPlaceToBucketMutation();
   const submittedRef = useRef(false);
   const form = useForm({
-    resolver: zodResolver(addPlaceToBucketSchema),
+    resolver: zodResolver(addPlaceToBucketSchema(copy)),
     defaultValues: {
       title: '',
       category: '',
@@ -54,7 +56,7 @@ export function useAddPlaceToBucket(place, onAdded, open = true) {
       },
       {
         onSuccess: () => {
-          toast.success('버킷리스트에 담았어요.');
+          toast.success(copy.addSuccess);
           onAdded();
         },
         onError: (error) => {
@@ -62,7 +64,7 @@ export function useAddPlaceToBucket(place, onAdded, open = true) {
           if (error?.code === 'INVALID_INPUT') {
             error.errors?.forEach(({ field, reason }) => form.setError(field, { message: reason }));
           } else {
-            toast.error(error?.message ?? '버킷리스트에 담지 못했어요.');
+            toast.error(error?.message ?? copy.addError);
           }
         },
       },

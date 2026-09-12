@@ -5,6 +5,7 @@ import { Spinner } from '@/shared/components/Spinner';
 import { ErrorMessage } from '@/shared/components/ErrorMessage';
 import { EmptyState } from '@/shared/components/EmptyState';
 import { useNearbyRecommendQuery } from './homeApi';
+import { useHomeCopy } from './homeLocale';
 import { PlaceDetailDialog } from './PlaceDetailDialog';
 
 const GENRE_META = {
@@ -26,6 +27,7 @@ export function NearbyRecommendSection() {
   const { places, isLoading, isError, hasNextPage, isFetchingNextPage, fetchNextPage } =
     useNearbyRecommendQuery();
   const [selectedPlace, setSelectedPlace] = useState(null);
+  const copy = useHomeCopy();
 
   function handleScroll(e) {
     if (!hasNextPage || isFetchingNextPage) return;
@@ -36,13 +38,11 @@ export function NearbyRecommendSection() {
 
   return (
     <section>
-      <h2 className="kb-section">Do it now · near you</h2>
+      <h2 className="kb-section">{copy.nearbySectionTitle}</h2>
 
       {isLoading && <Spinner />}
-      {!isLoading && isError && <ErrorMessage message="근처 추천을 불러올 수 없어요." />}
-      {!isLoading && !isError && places.length === 0 && (
-        <EmptyState message="근처 추천 장소가 없어요." />
-      )}
+      {!isLoading && isError && <ErrorMessage message={copy.nearbyError} />}
+      {!isLoading && !isError && places.length === 0 && <EmptyState message={copy.nearbyEmpty} />}
       {!isLoading && !isError && places.length > 0 && (
         <div
           className="no-scrollbar -mx-5 mt-3 flex gap-3 overflow-x-auto px-5"

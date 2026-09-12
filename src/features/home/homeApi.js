@@ -3,13 +3,19 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { useSelector } from 'react-redux';
 import { client } from '@/shared/api/client';
 import { getCurrentPosition } from '@/shared/utils/geo';
-import { selectIsAuthenticated } from '@/features/auth/authSlice';
+import { selectCurrentUser, selectIsAuthenticated } from '@/features/auth/authSlice';
 
 const NEARBY_RADIUS_METERS = 3000;
 const PAGE_SIZE = 10;
 const INITIAL_PAGE_PARAM = { all: null, offset: 0 };
 
 const unwrap = (res) => res?.data;
+
+// TourAPI 관광지명/설명은 마이페이지 언어 설정(ko/en)에 맞춰 받아온다 — 지원 언어는 지도 기능과 동일하게 ko/en만.
+function useTourLang() {
+  const preferredLanguage = useSelector(selectCurrentUser)?.preferredLanguage;
+  return preferredLanguage === 'en' ? 'en' : 'ko';
+}
 
 /** Recommend — 백엔드 TourAPI 기반, contentId + genre + 거리(distanceMeters) 포함 */
 function toRecommendPlace(r) {
@@ -41,18 +47,18 @@ function toTourPlace(t) {
   };
 }
 
-const fetchRecommend = (lat, lng, radius = NEARBY_RADIUS_METERS) =>
+const fetchRecommend = (lat, lng, lang, radius = NEARBY_RADIUS_METERS) =>
   client
-    .get('/api/v1/recommend', { params: { lat, lng, radius } })
+    .get('/api/v1/recommend', { params: { lat, lng, radius, lang } })
     .then(unwrap)
     .then((list) => (list ?? []).map(toRecommendPlace));
 
 // ⚠ /api/v1/tour/nearby 응답 모양이 배열 ↔ PageResponse{content,...} 사이를 계속 오가서,
 // 어느 쪽으로 와도 배열을 뽑아내도록 방어적으로 파싱한다. page/size 는 서버가 무시할 수 있어
 // 신뢰하지 않고, 받은 걸 통째로 client 에서 PAGE_SIZE 단위로 잘라서 보여준다.
-const fetchNearbyTourAll = (lat, lng, radius = NEARBY_RADIUS_METERS) =>
+const fetchNearbyTourAll = (lat, lng, lang, radius = NEARBY_RADIUS_METERS) =>
   client
-    .get('/api/v1/tour/nearby', { params: { lat, lng, radius } })
+    .get('/api/v1/tour/nearby', { params: { lat, lng, radius, lang } })
     .then(unwrap)
     .then((res) => (Array.isArray(res) ? res : (res?.content ?? [])).map(toTourPlace));
 
@@ -73,7 +79,7 @@ function toPlaceDetail(d) {
   };
 }
 
-const fetchPlaceDetail = (contentId, contentTypeId, lang = 'ko') =>
+const fetchPlaceDetail = (contentId, contentTypeId, lang) =>
   client
     .get(`/api/v1/tour/detail/${encodeURIComponent(contentId)}`, {
       params: { contentTypeId, lang },
@@ -82,9 +88,11 @@ const fetchPlaceDetail = (contentId, contentTypeId, lang = 'ko') =>
     .then((d) => (d ? toPlaceDetail(d) : null));
 
 export function usePlaceDetailQuery(contentId, contentTypeId) {
+  const lang = useTourLang();
+
   return useQuery({
-    queryKey: ['placeDetail', contentId, contentTypeId],
-    queryFn: () => fetchPlaceDetail(contentId, contentTypeId),
+    queryKey: ['placeDetail', contentId, contentTypeId, lang],
+    queryFn: () => fetchPlaceDetail(contentId, contentTypeId, lang),
     enabled: !!contentId,
   });
 }
@@ -224,18 +232,18 @@ function sliceAll(all, offset) {
   };
 }
 
-async function fetchNearbyPage(lat, lng, pageParam) {
+async function fetchNearbyPage(lat, lng, lang, pageParam) {
   if (pageParam.all) {
     return sliceAll(pageParam.all, pageParam.offset);
   }
 
   // 최초 페이지: K-컬처 큐레이션(recommend)을 우선 시도한다.
-  const recommended = await fetchRecommend(lat, lng);
+  const recommended = await fetchRecommend(lat, lng, lang);
   if (recommended.length > 0) {
     return sliceAll(recommended, 0);
   }
   // 큐레이션 반경 밖(지방 등)이면 장르 무관 일반 근처 검색으로 대체
-  const tourAll = await fetchNearbyTourAll(lat, lng);
+  const tourAll = await fetchNearbyTourAll(lat, lng, lang);
   return sliceAll(tourAll, 0);
 }
 
@@ -271,6 +279,7 @@ function isPlaceInMyBucket(place, bucketPlaces) {
 
 export function useNearbyRecommendQuery() {
   const isAuthenticated = useSelector(selectIsAuthenticated);
+  const lang = useTourLang();
   const geoQuery = useQuery({
     queryKey: ['geo', 'current'],
     queryFn: getCurrentPosition,
@@ -280,8 +289,8 @@ export function useNearbyRecommendQuery() {
   const coords = geoQuery.data;
 
   const query = useInfiniteQuery({
-    queryKey: ['recommend', 'nearby', coords?.lat, coords?.lng],
-    queryFn: ({ pageParam }) => fetchNearbyPage(coords.lat, coords.lng, pageParam),
+    queryKey: ['recommend', 'nearby', coords?.lat, coords?.lng, lang],
+    queryFn: ({ pageParam }) => fetchNearbyPage(coords.lat, coords.lng, lang, pageParam),
     initialPageParam: INITIAL_PAGE_PARAM,
     getNextPageParam: (lastPage) => lastPage.nextPageParam,
     enabled: !!coords,

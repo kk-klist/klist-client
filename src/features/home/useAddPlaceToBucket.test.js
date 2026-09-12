@@ -76,7 +76,7 @@ describe('useAddPlaceToBucket', () => {
     await act(() => result.current.handleSubmit());
 
     expect(mutate).not.toHaveBeenCalled();
-    expect(result.current.form.getFieldState('title').error?.message).toBe('제목을 입력해주세요.');
+    expect(result.current.form.getFieldState('title').error?.message).toBe('Please enter a title.');
   });
 
   it('장르가 없는 장소는 카테고리를 직접 선택해야 한다', async () => {
@@ -90,7 +90,7 @@ describe('useAddPlaceToBucket', () => {
 
     expect(mutate).not.toHaveBeenCalled();
     expect(result.current.form.getFieldState('category').error?.message).toBe(
-      '카테고리를 선택해주세요.',
+      'Please select a category.',
     );
   });
 
@@ -106,7 +106,7 @@ describe('useAddPlaceToBucket', () => {
 
     expect(mutate).not.toHaveBeenCalled();
     expect(result.current.form.getFieldState('description').error?.message).toBe(
-      '설명은 300자 이하로 입력해주세요.',
+      'The description must be 300 characters or fewer.',
     );
   });
 });

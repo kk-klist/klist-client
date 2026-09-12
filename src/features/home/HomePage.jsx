@@ -6,11 +6,12 @@ import { NearbyRecommendSection } from './NearbyRecommendSection';
 import { BucketProgressCard } from './BucketProgressCard';
 import { NearbyCheckinCard } from './NearbyCheckinCard';
 import { BucketListPreviewSection } from './BucketListPreviewSection';
+import { HomeLocaleProvider } from './HomeLocaleProvider';
+import { useHomeCopy } from './homeLocale';
 
-export default function HomePage() {
+function HomePageContent() {
   const user = useSelector(selectCurrentUser);
-  const isKorean = user?.preferredLanguage === 'ko';
-  const name = user?.nickname;
+  const copy = useHomeCopy();
 
   return (
     <div className="kb-page">
@@ -18,16 +19,7 @@ export default function HomePage() {
 
       {/* 인사 */}
       <div>
-        <h1 className="kb-title">
-          {isKorean
-            ? name
-              ? `안녕하세요, ${name}님`
-              : '안녕하세요'
-            : name
-              ? `Hi, ${name}`
-              : 'Hi there'}{' '}
-          👋
-        </h1>
+        <h1 className="kb-title">{copy.greeting(user?.nickname)} 👋</h1>
       </div>
 
       {/* 진행률 카드 */}
@@ -45,5 +37,15 @@ export default function HomePage() {
       {/* My bucket list 미리보기 */}
       <BucketListPreviewSection />
     </div>
+  );
+}
+
+export default function HomePage() {
+  const language = useSelector(selectCurrentUser)?.preferredLanguage;
+
+  return (
+    <HomeLocaleProvider language={language}>
+      <HomePageContent />
+    </HomeLocaleProvider>
   );
 }

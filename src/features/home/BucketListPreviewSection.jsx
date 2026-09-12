@@ -6,6 +6,7 @@ import { ErrorMessage } from '@/shared/components/ErrorMessage';
 import { EmptyState } from '@/shared/components/EmptyState';
 import { selectIsAuthenticated } from '@/features/auth/authSlice';
 import { useBucketListPreviewQuery } from './homeApi';
+import { useHomeCopy } from './homeLocale';
 import { LoginPromptCard } from './LoginPromptCard';
 
 const CATEGORY_META = {
@@ -21,28 +22,29 @@ export function BucketListPreviewSection() {
   const navigate = useNavigate();
   const { data, isLoading, isError } = useBucketListPreviewQuery({ enabled: isAuthenticated });
   const items = data ?? [];
+  const copy = useHomeCopy();
 
   return (
     <section>
       <div className="flex items-center justify-between">
-        <h2 className="kb-section">My bucket list</h2>
+        <h2 className="kb-section">{copy.myBucketListTitle}</h2>
         <button
           type="button"
           className="text-[13px] font-bold text-muted-foreground"
           onClick={() => navigate('/bucket')}
         >
-          View all ›
+          {copy.viewAll}
         </button>
       </div>
 
       <div className="mt-3">
-        {!isAuthenticated && <LoginPromptCard message="로그인하고 버킷리스트 확인하기" />}
+        {!isAuthenticated && <LoginPromptCard message={copy.loginPromptBucketList} />}
         {isAuthenticated && isLoading && <Spinner />}
         {isAuthenticated && !isLoading && isError && (
-          <ErrorMessage message="버킷리스트를 불러올 수 없어요." />
+          <ErrorMessage message={copy.bucketListError} />
         )}
         {isAuthenticated && !isLoading && !isError && items.length === 0 && (
-          <EmptyState message="아직 등록한 버킷리스트가 없어요." />
+          <EmptyState message={copy.bucketListEmpty} />
         )}
         {isAuthenticated && !isLoading && !isError && items.length > 0 && (
           <div className="flex flex-col gap-3">

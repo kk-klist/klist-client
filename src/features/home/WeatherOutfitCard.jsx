@@ -1,4 +1,5 @@
 import { useWeatherOutfitQuery } from './weatherApi';
+import { useHomeCopy } from './homeLocale';
 import { Spinner } from '@/shared/components/Spinner';
 import { ErrorMessage } from '@/shared/components/ErrorMessage';
 import { EmptyState } from '@/shared/components/EmptyState';
@@ -12,28 +13,20 @@ const CONDITION_ICON = {
   WINDY: '💨',
 };
 
-const CONDITION_LABEL = {
-  SUNNY: '맑음',
-  RAINY: '비',
-  SLEET: '진눈깨비',
-  SNOWY: '눈',
-  SHOWER: '소나기',
-  WINDY: '강풍',
-};
-
 const FALLBACK_ICON = '🌤️';
 
 export function WeatherOutfitCard() {
   const { data, isLoading, isError } = useWeatherOutfitQuery();
+  const copy = useHomeCopy();
 
   if (isLoading) return <Spinner />;
   // 백엔드 에러 코드/메시지(예: 위도·경도 검증 실패)는 사용자가 유발한 게 아니라서 그대로 노출하지 않는다.
-  if (isError) return <ErrorMessage message="날씨 정보를 불러올 수 없어요." />;
-  if (!data) return <EmptyState message="날씨 정보가 없어요." />;
+  if (isError) return <ErrorMessage message={copy.weatherError} />;
+  if (!data) return <EmptyState message={copy.weatherEmpty} />;
 
   const { weather, outfit } = data;
   const icon = CONDITION_ICON[weather.condition] ?? FALLBACK_ICON;
-  const label = CONDITION_LABEL[weather.condition] ?? weather.condition;
+  const label = copy.conditionLabels[weather.condition] ?? weather.condition;
   const observedTime = weather.observedAt?.slice(11, 16);
 
   return (
@@ -47,11 +40,11 @@ export function WeatherOutfitCard() {
             {Math.round(weather.temperature)}°{' '}
             <span className="font-semibold text-muted-foreground">
               {label}
-              {observedTime && ` · ${observedTime} 기준`}
+              {observedTime && ` · ${observedTime} ${copy.observedAtSuffix}`}
             </span>
           </p>
           <p className="text-[13px] text-muted-foreground">
-            오늘의 추천 복장 · {outfit.temperatureRange}°C
+            {copy.todayOutfit} · {outfit.temperatureRange}°C
           </p>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { Spinner } from '@/shared/components/Spinner';
 import { ErrorMessage } from '@/shared/components/ErrorMessage';
 import { EmptyState } from '@/shared/components/EmptyState';
 import { usePlaceDetailQuery } from './homeApi';
+import { useHomeCopy } from './homeLocale';
 import { AddToBucketSheet } from './AddToBucketSheet';
 
 // TourAPI 텍스트에 섞여오는 <br> 등 HTML 태그 정리
@@ -48,6 +49,7 @@ export function PlaceDetailDialog({ place, open, onOpenChange }) {
   const { data, isLoading, isError } = usePlaceDetailQuery(place?.id, place?.contentTypeId);
   const [expanded, setExpanded] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const copy = useHomeCopy();
 
   const title = data?.title ?? place?.title;
   const thumbnail = data?.thumbnail ?? place?.thumbnail;
@@ -76,12 +78,12 @@ export function PlaceDetailDialog({ place, open, onOpenChange }) {
           )}
           {!isLoading && isError && (
             <div className="p-6">
-              <ErrorMessage message="상세 정보를 불러올 수 없어요." />
+              <ErrorMessage message={copy.placeDetailError} />
             </div>
           )}
           {!isLoading && !isError && !data && (
             <div className="p-6">
-              <EmptyState message="상세 정보가 없어요." />
+              <EmptyState message={copy.placeDetailEmpty} />
             </div>
           )}
           {!isLoading && !isError && data && (
@@ -98,7 +100,7 @@ export function PlaceDetailDialog({ place, open, onOpenChange }) {
                 </h2>
                 <DialogClose className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-full bg-black/40 text-white transition-colors hover:bg-black/60">
                   <X className="size-4" />
-                  <span className="sr-only">닫기</span>
+                  <span className="sr-only">{copy.close}</span>
                 </DialogClose>
               </div>
 
@@ -126,7 +128,9 @@ export function PlaceDetailDialog({ place, open, onOpenChange }) {
                         <span className="shrink-0">🚫</span>
                         <div className="flex flex-col gap-0.5">
                           {restDateLines.map((line, i) => (
-                            <span key={line}>{i === 0 ? `휴무일 ${line}` : line}</span>
+                            <span key={line}>
+                              {i === 0 ? `${copy.restDatePrefix} ${line}` : line}
+                            </span>
                           ))}
                         </div>
                       </div>
@@ -142,14 +146,14 @@ export function PlaceDetailDialog({ place, open, onOpenChange }) {
                         onClick={() => setExpanded((v) => !v)}
                         className="mt-1 text-[13px] font-bold text-primary"
                       >
-                        {expanded ? '접기' : '자세히 보기'}
+                        {expanded ? copy.collapse : copy.expand}
                       </button>
                     )}
                   </div>
                 )}
 
                 <Button className="h-12 w-full" onClick={() => setAddOpen(true)}>
-                  버킷리스트에 담기
+                  {copy.addToBucket}
                 </Button>
               </div>
             </>
