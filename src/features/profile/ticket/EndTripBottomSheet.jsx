@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/shared/components/ui/dialog';
 import { fetchPeriodCheck, useTicketsQuery, useCreateTicketMutation } from './ticketApi';
+import { useProfileCopy } from '../profileLocale';
 
 function toLocalDate(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -25,6 +26,7 @@ function formatDate(date) {
 }
 
 export function EndTripBottomSheet({ open, onOpenChange }) {
+  const copy = useProfileCopy();
   const [range, setRange] = useState(undefined);
   const [errorMessage, setErrorMessage] = useState('');
   const [showEmptyAlert, setShowEmptyAlert] = useState(false);
@@ -73,7 +75,7 @@ export function EndTripBottomSheet({ open, onOpenChange }) {
       if (err.code === 'TICKET_DATE_OVERLAP') {
         setRange(undefined);
       }
-      setErrorMessage(err.message ?? '오류가 발생했습니다.');
+      setErrorMessage(err.message ?? copy.genericError);
     }
   }
 
@@ -91,7 +93,7 @@ export function EndTripBottomSheet({ open, onOpenChange }) {
       }
       await submitCreate(startDate, endDate);
     } catch (err) {
-      setErrorMessage(err.message ?? '오류가 발생했습니다.');
+      setErrorMessage(err.message ?? copy.genericError);
     } finally {
       setIsSubmitting(false);
     }
@@ -122,7 +124,7 @@ export function EndTripBottomSheet({ open, onOpenChange }) {
           className="mx-auto max-w-[560px] rounded-t-2xl px-0 pb-8"
         >
           <SheetHeader className="px-5 pb-2">
-            <SheetTitle>여행 기간 선택</SheetTitle>
+            <SheetTitle>{copy.endTripSheetTitle}</SheetTitle>
           </SheetHeader>
           <div className="flex flex-col items-center gap-4 px-4">
             <Calendar mode="range" selected={range} onSelect={setRange} disabled={disabled} />
@@ -131,14 +133,14 @@ export function EndTripBottomSheet({ open, onOpenChange }) {
             )}
             <div className="flex w-full gap-2">
               <Button variant="outline" className="flex-1" onClick={handleClose}>
-                취소
+                {copy.cancel}
               </Button>
               <Button
                 className="flex-1"
                 disabled={!range?.from || !range?.to || isSubmitting}
                 onClick={handleConfirm}
               >
-                확인
+                {copy.confirm}
               </Button>
             </div>
           </div>
@@ -148,8 +150,8 @@ export function EndTripBottomSheet({ open, onOpenChange }) {
       <Dialog open={showEmptyAlert} onOpenChange={setShowEmptyAlert}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>이 기간에 완료된 버킷리스트가 없어요</DialogTitle>
-            <DialogDescription>버킷리스트 없이 티켓을 만들까요?</DialogDescription>
+            <DialogTitle>{copy.emptyBucketTitle}</DialogTitle>
+            <DialogDescription>{copy.emptyBucketDescription}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
@@ -157,10 +159,10 @@ export function EndTripBottomSheet({ open, onOpenChange }) {
               onClick={() => setShowEmptyAlert(false)}
               disabled={isSubmitting}
             >
-              취소
+              {copy.cancel}
             </Button>
             <Button onClick={handleEmptyConfirm} disabled={isSubmitting}>
-              티켓 만들기
+              {copy.createTicket}
             </Button>
           </DialogFooter>
         </DialogContent>

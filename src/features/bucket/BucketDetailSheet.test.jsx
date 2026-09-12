@@ -7,6 +7,8 @@ import { useToggleBucketCompletion } from './useToggleBucketCompletion';
 
 vi.mock('./bucketApi', () => ({
   useBucketListQuery: vi.fn(),
+  useDeleteBucketListMutation: vi.fn(() => ({ isPending: false, mutate: vi.fn() })),
+  useUpdateBucketListMutation: vi.fn(() => ({ isPending: false, mutate: vi.fn() })),
 }));
 
 vi.mock('./useToggleBucketCompletion', () => ({
@@ -44,6 +46,8 @@ describe('BucketDetailSheet', () => {
       expect.stringContaining('map.kakao.com'),
     );
     expect(screen.getByRole('button', { name: 'Mark as completed' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
   });
 
   it('완료된 버킷리스트의 완료일을 표시한다', () => {

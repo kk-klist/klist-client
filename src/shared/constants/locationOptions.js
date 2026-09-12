@@ -1,13 +1,6 @@
 export const SUPPORTED_LANGUAGES = [
   { value: 'ko', label: '한국어' },
   { value: 'en', label: 'English' },
-  { value: 'ja', label: '日本語' },
-  { value: 'zh-CN', label: '中文 (简体)' },
-  { value: 'zh-TW', label: '中文 (繁體)' },
-  { value: 'ru', label: 'Русский' },
-  { value: 'es', label: 'Español' },
-  { value: 'de', label: 'Deutsch' },
-  { value: 'fr', label: 'Français' },
 ];
 
 export const SUPPORTED_NATIONALITIES = [

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { client } from '@/shared/api/client';
 import { getCurrentPosition } from '@/shared/utils/geo';
@@ -7,11 +7,12 @@ const PAGE_SIZE = 10;
 const RECOMMENDATION_STALE_TIME = 30 * 60 * 1000;
 const unwrap = (response) => response?.data ?? response;
 
-const fetchBucketLists = ({ category, page }) =>
+const fetchBucketLists = ({ category, completed, page }) =>
   client
     .get('/api/v1/bucket-lists', {
       params: {
         category,
+        ...(completed !== 'ALL' && { completed: completed === 'COMPLETED' }),
         page,
         size: PAGE_SIZE,
       },
@@ -21,12 +22,14 @@ const fetchBucketLists = ({ category, page }) =>
 export function useBucketListsQuery(filters, enabled = true) {
   const conditions = {
     category: filters.category,
-    page: filters.page,
+    completed: filters.completed,
   };
 
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['bucket', 'list', conditions],
-    queryFn: () => fetchBucketLists(conditions),
+    queryFn: ({ pageParam }) => fetchBucketLists({ ...conditions, page: pageParam }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => (lastPage.hasNext ? lastPage.currentPage + 1 : undefined),
     enabled,
   });
 }
@@ -150,6 +153,22 @@ export function useBucketRecommendationDetailQuery(recommendation, enabled = tru
   });
 }
 
+const fetchBucketPlaceSearch = (keyword) =>
+  client
+    .get('/api/v1/tour/search', { params: { keyword, lang: 'ko' } })
+    .then(unwrap)
+    .then((places) => places ?? []);
+
+export function useBucketPlaceSearchQuery(keyword, enabled = true) {
+  return useQuery({
+    queryKey: ['bucket', 'placeSearch', keyword],
+    queryFn: () => fetchBucketPlaceSearch(keyword),
+    enabled: enabled && !!keyword,
+    staleTime: 10 * 60 * 1000,
+    retry: 1,
+  });
+}
+
 const createBucketList = (request) => client.post('/api/v1/bucket-lists', request).then(unwrap);
 
 export function useCreateBucketListMutation() {
@@ -157,6 +176,34 @@ export function useCreateBucketListMutation() {
 
   return useMutation({
     mutationFn: createBucketList,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['bucket'] }),
+        queryClient.invalidateQueries({ queryKey: ['home', 'bucketProgress'] }),
+      ]);
+    },
+  });
+}
+
+const updateBucketList = ({ bucketListId, request }) =>
+  client.patch(`/api/v1/bucket-lists/${bucketListId}`, request).then(unwrap);
+
+export function useUpdateBucketListMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateBucketList,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bucket'] }),
+  });
+}
+
+const deleteBucketList = (bucketListId) => client.delete(`/api/v1/bucket-lists/${bucketListId}`);
+
+export function useDeleteBucketListMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteBucketList,
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['bucket'] }),

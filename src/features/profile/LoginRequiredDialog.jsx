@@ -8,22 +8,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/components/ui/dialog';
+import { useProfileCopy } from './profileLocale';
 
 export function LoginRequiredDialog({ open, onOpenChange }) {
   const navigate = useNavigate();
+  const copy = useProfileCopy();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>로그인이 필요한 기능이에요</DialogTitle>
-          <DialogDescription>로그인하면 마이페이지를 이용할 수 있어요.</DialogDescription>
+          <DialogTitle>{copy.loginRequiredTitle}</DialogTitle>
+          <DialogDescription>{copy.loginRequiredDescription}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            닫기
+            {copy.close}
           </Button>
-          <Button onClick={() => navigate('/login')}>로그인하러 가기</Button>
+          <Button onClick={() => navigate('/login')}>{copy.goToLogin}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

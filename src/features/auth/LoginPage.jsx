@@ -18,10 +18,12 @@ export default function LoginPage() {
         </button>
         <button
           type="button"
-          disabled
-          className="w-full rounded-xl border border-gray-200 bg-white py-3.5 text-sm font-bold shadow-card disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-xl border border-gray-200 bg-white py-3.5 text-sm font-bold shadow-card"
+          onClick={() => {
+            window.location.href = `${import.meta.env.VITE_API_BASE_URL}/oauth2/authorization/google`;
+          }}
         >
-          Google 로그인 (준비 중)
+          Google로 시작하기
         </button>
       </div>
 
