@@ -19,7 +19,9 @@ export function useBucketRecommendations(filters, enabled = true) {
     );
   }, [filters.sort, query.data]);
   const totalPages = Math.ceil(sortedRecommendations.length / PAGE_SIZE);
-  const currentPage = Math.min(filters.page, Math.max(totalPages - 1, 0));
+  const requestedPage = Number(filters.page);
+  const normalizedPage = Number.isInteger(requestedPage) && requestedPage >= 0 ? requestedPage : 0;
+  const currentPage = Math.min(normalizedPage, Math.max(totalPages - 1, 0));
   const startIndex = currentPage * PAGE_SIZE;
 
   return {

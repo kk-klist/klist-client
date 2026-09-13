@@ -17,11 +17,14 @@ import { cn } from '@/shared/utils/cn';
 import { selectCurrentUser } from '@/features/auth/authSlice';
 
 function getFilters(searchParams) {
+  const page = Number(searchParams.get('page'));
+
   return {
     tab: searchParams.get('tab') ?? DEFAULT_FILTERS.tab,
     category: searchParams.get('category') ?? DEFAULT_FILTERS.category,
     completed: searchParams.get('completed') ?? DEFAULT_FILTERS.completed,
     sort: searchParams.get('sort') ?? DEFAULT_FILTERS.sort,
+    page: Number.isInteger(page) && page >= 0 ? page : 0,
   };
 }
 
