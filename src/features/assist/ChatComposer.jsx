@@ -3,10 +3,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Send } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import { Button } from '@/shared/components/ui/button';
+import { ASSIST_LOCALE } from './assistLocale';
 import { AudioInput } from './AudioInput';
-import { chatQuerySchema } from './assistSchemas';
+import { createChatQuerySchema } from './assistSchemas';
 
 export function ChatComposer({
+  language = 'ko',
   disabled,
   isWaiting,
   suggestion,
@@ -14,8 +16,9 @@ export function ChatComposer({
   onSend,
   onAudio,
 }) {
+  const text = ASSIST_LOCALE[language];
   const form = useForm({
-    resolver: zodResolver(chatQuerySchema),
+    resolver: zodResolver(createChatQuerySchema(language)),
     defaultValues: { query: '' },
   });
   const query = useWatch({ control: form.control, name: 'query' });
@@ -32,6 +35,10 @@ export function ChatComposer({
     if (sent) form.reset();
   }
 
+  useEffect(() => {
+    if (form.formState.errors.query) void form.trigger('query');
+  }, [language, form]);
+
   const error = form.formState.errors.query?.message;
 
   return (
@@ -46,8 +53,8 @@ export function ChatComposer({
           maxLength={4000}
           disabled={disabled || isWaiting}
           className="max-h-28 min-h-10 flex-1 resize-none bg-transparent py-2 text-[14px] outline-none placeholder:text-muted2"
-          placeholder="Ask K-Buddy anything…"
-          aria-label="질문 입력"
+          placeholder={text.placeholder}
+          aria-label={text.input}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
               event.preventDefault();
@@ -55,12 +62,12 @@ export function ChatComposer({
             }
           }}
         />
-        <AudioInput disabled={disabled || isWaiting} onAudio={onAudio} />
+        <AudioInput language={language} disabled={disabled || isWaiting} onAudio={onAudio} />
         <Button
           type="submit"
           size="icon-lg"
           disabled={disabled || isWaiting}
-          aria-label="질문 전송"
+          aria-label={text.send}
         >
           {isWaiting ? <Loader2 className="animate-spin" /> : <Send />}
         </Button>

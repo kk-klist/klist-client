@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { ASSIST_LOCALE } from './assistLocale';
 import { toast } from '@/shared/utils/toast';
 import {
   useCreateChatSessionMutation,
@@ -7,13 +8,6 @@ import {
 } from './assistApi';
 
 const SESSION_ERROR_CODES = new Set(['CHAT_SESSION_NOT_FOUND', 'CHAT_SESSION_EXPIRED']);
-
-const STATUS_FALLBACK = {
-  COMPLETED: '답변을 완료했어요.',
-  NO_RESULT: '관련된 결과를 찾지 못했어요. 다른 방식으로 질문해 주세요.',
-  UNSUPPORTED: '아직 답변하기 어려운 질문이에요.',
-  CLARIFICATION_REQUIRED: '조금 더 구체적으로 알려주세요.',
-};
 
 function makeMessage(role, content, extra = {}) {
   return {
@@ -24,18 +18,20 @@ function makeMessage(role, content, extra = {}) {
   };
 }
 
-function toAssistantMessage(response) {
+function toAssistantMessage(response, text) {
   const status = response?.status ?? 'COMPLETED';
   const content =
-    response?.answer ?? response?.message ?? response?.content ?? STATUS_FALLBACK[status];
+    response?.answer ?? response?.message ?? response?.content ?? text.statusFallback[status];
 
-  return makeMessage('assistant', content ?? '답변을 불러오지 못했어요.', {
+  return makeMessage('assistant', content ?? text.answerFailed, {
     status,
     suggestions: Array.isArray(response?.suggestions) ? response.suggestions : [],
   });
 }
 
 export function useAssistChat() {
+  const [language, setLanguage] = useState('ko');
+  const text = ASSIST_LOCALE[language];
   const [sessionId, setSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [sessionExpired, setSessionExpired] = useState(false);
@@ -52,11 +48,10 @@ export function useAssistChat() {
     }
 
     const friendlyMessage = {
-      STT_INVALID_RESPONSE:
-        '음성을 이해하지 못했어요. 더 또렷하게 녹음하거나 다른 파일을 선택해 주세요.',
-      NETWORK_ERROR: '음성 파일을 전송하지 못했어요. 네트워크 연결을 확인하고 다시 시도해 주세요.',
+      STT_INVALID_RESPONSE: text.sttFailed,
+      NETWORK_ERROR: text.networkFailed,
     }[error?.code];
-    toast.error(friendlyMessage ?? error?.message ?? fallbackMessage);
+    toast.error(error?.message ?? friendlyMessage ?? fallbackMessage);
   }
 
   async function startNewChat() {
@@ -64,11 +59,11 @@ export function useAssistChat() {
     try {
       const session = await createSession.mutateAsync();
       const nextSessionId = session?.sessionId ?? session?.id;
-      if (!nextSessionId) throw new Error('세션 ID가 응답에 없습니다.');
+      if (!nextSessionId) throw new Error(text.sessionMissing);
       setSessionId(nextSessionId);
       setMessages([]);
     } catch (error) {
-      toast.error(error?.message ?? '대화를 시작하지 못했습니다.');
+      toast.error(error?.message ?? text.startFailed);
     }
   }
 
@@ -78,11 +73,11 @@ export function useAssistChat() {
     requestInFlightRef.current = true;
     setMessages((current) => [...current, makeMessage('user', message)]);
     try {
-      const response = await sendQuery.mutateAsync({ sessionId, message });
-      setMessages((current) => [...current, toAssistantMessage(response)]);
+      const response = await sendQuery.mutateAsync({ sessionId, message, language });
+      setMessages((current) => [...current, toAssistantMessage(response, text)]);
       return true;
     } catch (error) {
-      handleQueryError(error, '질문 전송에 실패했습니다.');
+      handleQueryError(error, text.sendFailed);
       return false;
     } finally {
       requestInFlightRef.current = false;
@@ -94,20 +89,20 @@ export function useAssistChat() {
 
     requestInFlightRef.current = true;
     try {
-      const response = await sendAudioQuery.mutateAsync({ sessionId, audio });
+      const response = await sendAudioQuery.mutateAsync({ sessionId, audio, language });
       const transcription = response?.transcription?.trim();
       if (!transcription) {
-        handleQueryError({ code: 'STT_INVALID_RESPONSE' }, '음성을 변환하지 못했습니다.');
+        handleQueryError({ code: 'STT_INVALID_RESPONSE' }, text.sttFailed);
         return false;
       }
       setMessages((current) => [
         ...current,
         makeMessage('user', transcription),
-        toAssistantMessage(response),
+        toAssistantMessage(response, text),
       ]);
       return true;
     } catch (error) {
-      handleQueryError(error, '음성 파일 처리에 실패했습니다.');
+      handleQueryError(error, text.audioFailed);
       return false;
     } finally {
       requestInFlightRef.current = false;
@@ -115,6 +110,8 @@ export function useAssistChat() {
   }
 
   return {
+    language,
+    setLanguage,
     sessionId,
     messages,
     sessionExpired,
