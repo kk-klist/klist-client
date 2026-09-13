@@ -1,12 +1,9 @@
 import { cn } from '@/shared/utils/cn';
 
-const STATUS_LABEL = {
-  NO_RESULT: '검색 결과 없음',
-  UNSUPPORTED: '지원하지 않는 질문',
-  CLARIFICATION_REQUIRED: '추가 정보 필요',
-};
+import { ASSIST_LOCALE } from './assistLocale';
 
-export function ChatMessageBubble({ message, onSuggestion }) {
+export function ChatMessageBubble({ message, onSuggestion, language = 'ko' }) {
+  const statusLabel = ASSIST_LOCALE[language].statusLabel;
   const isUser = message.role === 'user';
 
   return (
@@ -18,9 +15,9 @@ export function ChatMessageBubble({ message, onSuggestion }) {
           : 'rounded-tl-md border border-line bg-white shadow-card',
       )}
     >
-      {!isUser && STATUS_LABEL[message.status] && (
+      {!isUser && statusLabel[message.status] && (
         <p className="mb-1 text-[11px] font-bold text-muted-foreground">
-          {STATUS_LABEL[message.status]}
+          {statusLabel[message.status]}
         </p>
       )}
       <p className="whitespace-pre-wrap">{message.content}</p>
