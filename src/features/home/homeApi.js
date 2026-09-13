@@ -1,12 +1,21 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSelector } from 'react-redux';
 import { client } from '@/shared/api/client';
 import { getCurrentPosition } from '@/shared/utils/geo';
+import { selectCurrentUser, selectIsAuthenticated } from '@/features/auth/authSlice';
 
 const NEARBY_RADIUS_METERS = 3000;
 const PAGE_SIZE = 10;
 const INITIAL_PAGE_PARAM = { all: null, offset: 0 };
 
 const unwrap = (res) => res?.data;
+
+// TourAPI 관광지명/설명은 마이페이지 언어 설정(ko/en)에 맞춰 받아온다 — 지원 언어는 지도 기능과 동일하게 ko/en만.
+function useTourLang() {
+  const preferredLanguage = useSelector(selectCurrentUser)?.preferredLanguage;
+  return preferredLanguage === 'en' ? 'en' : 'ko';
+}
 
 /** Recommend — 백엔드 TourAPI 기반, contentId + genre + 거리(distanceMeters) 포함 */
 function toRecommendPlace(r) {
@@ -38,18 +47,18 @@ function toTourPlace(t) {
   };
 }
 
-const fetchRecommend = (lat, lng, radius = NEARBY_RADIUS_METERS) =>
+const fetchRecommend = (lat, lng, lang, radius = NEARBY_RADIUS_METERS) =>
   client
-    .get('/api/v1/recommend', { params: { lat, lng, radius } })
+    .get('/api/v1/recommend', { params: { lat, lng, radius, lang } })
     .then(unwrap)
     .then((list) => (list ?? []).map(toRecommendPlace));
 
 // ⚠ /api/v1/tour/nearby 응답 모양이 배열 ↔ PageResponse{content,...} 사이를 계속 오가서,
 // 어느 쪽으로 와도 배열을 뽑아내도록 방어적으로 파싱한다. page/size 는 서버가 무시할 수 있어
 // 신뢰하지 않고, 받은 걸 통째로 client 에서 PAGE_SIZE 단위로 잘라서 보여준다.
-const fetchNearbyTourAll = (lat, lng, radius = NEARBY_RADIUS_METERS) =>
+const fetchNearbyTourAll = (lat, lng, lang, radius = NEARBY_RADIUS_METERS) =>
   client
-    .get('/api/v1/tour/nearby', { params: { lat, lng, radius } })
+    .get('/api/v1/tour/nearby', { params: { lat, lng, radius, lang } })
     .then(unwrap)
     .then((res) => (Array.isArray(res) ? res : (res?.content ?? [])).map(toTourPlace));
 
@@ -70,7 +79,7 @@ function toPlaceDetail(d) {
   };
 }
 
-const fetchPlaceDetail = (contentId, contentTypeId, lang = 'ko') =>
+const fetchPlaceDetail = (contentId, contentTypeId, lang) =>
   client
     .get(`/api/v1/tour/detail/${encodeURIComponent(contentId)}`, {
       params: { contentTypeId, lang },
@@ -79,9 +88,11 @@ const fetchPlaceDetail = (contentId, contentTypeId, lang = 'ko') =>
     .then((d) => (d ? toPlaceDetail(d) : null));
 
 export function usePlaceDetailQuery(contentId, contentTypeId) {
+  const lang = useTourLang();
+
   return useQuery({
-    queryKey: ['placeDetail', contentId, contentTypeId],
-    queryFn: () => fetchPlaceDetail(contentId, contentTypeId),
+    queryKey: ['placeDetail', contentId, contentTypeId, lang],
+    queryFn: () => fetchPlaceDetail(contentId, contentTypeId, lang),
     enabled: !!contentId,
   });
 }
@@ -106,6 +117,109 @@ export function useBucketProgressQuery(options) {
   });
 }
 
+/** BucketListPreview — 홈 화면 미리보기용 최신 등록 순 상위 N건 */
+const BUCKET_PREVIEW_SIZE = 3;
+
+function toBucketListPreviewItem(b) {
+  return {
+    id: b.bucketListId,
+    title: b.title,
+    category: b.category,
+    isCompleted: b.isCompleted === true,
+    imageUrl: b.imageUrl ?? null,
+    placeName: b.placeName ?? b.address ?? null,
+  };
+}
+
+const fetchBucketListPreview = () =>
+  client
+    .get('/api/v1/bucket-lists', {
+      params: { category: 'ALL', page: 0, size: BUCKET_PREVIEW_SIZE },
+    })
+    .then(unwrap)
+    .then((page) => (page?.content ?? []).map(toBucketListPreviewItem));
+
+export function useBucketListPreviewQuery(options) {
+  return useQuery({
+    queryKey: ['home', 'bucketListPreview'],
+    queryFn: fetchBucketListPreview,
+    ...options,
+  });
+}
+
+/**
+ * NearbyCheckin — 미완료 버킷리스트 중 현재 위치에서 가장 가까운 항목.
+ * 실제 방문 인증(거리 검증 + completion PATCH)은 지도 화면이 담당하므로,
+ * 여기서는 "근처에 인증 가능한 장소가 있는지"만 판단해 지도로 안내한다.
+ */
+const NEARBY_CHECKIN_RADIUS_METERS = 500;
+
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function toCheckinCandidate(b) {
+  return {
+    bucketListId: b.bucketListId,
+    title: b.title,
+    placeName: b.placeName ?? b.address ?? null,
+    lat: b.latitude != null ? Number(b.latitude) : null,
+    lng: b.longitude != null ? Number(b.longitude) : null,
+  };
+}
+
+const fetchIncompleteBucketLists = () =>
+  client
+    .get('/api/v1/bucket-lists', {
+      params: { category: 'ALL', completed: false, page: 0, size: 100 },
+    })
+    .then(unwrap)
+    .then((page) => (page?.content ?? []).map(toCheckinCandidate));
+
+export function useNearbyCheckinQuery(options) {
+  const geoQuery = useQuery({
+    queryKey: ['geo', 'current'],
+    queryFn: getCurrentPosition,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    ...options,
+  });
+  const coords = geoQuery.data;
+
+  const bucketsQuery = useQuery({
+    queryKey: ['home', 'nearbyCheckinCandidates'],
+    queryFn: fetchIncompleteBucketLists,
+    enabled: options?.enabled !== false && !!coords,
+  });
+
+  let candidate = null;
+  if (coords && bucketsQuery.data) {
+    let nearestDistance = Infinity;
+    for (const b of bucketsQuery.data) {
+      if (b.lat == null || b.lng == null) continue;
+      const distance = haversineMeters(coords.lat, coords.lng, b.lat, b.lng);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        candidate = { ...b, distanceMeters: distance };
+      }
+    }
+    if (candidate && nearestDistance > NEARBY_CHECKIN_RADIUS_METERS) candidate = null;
+  }
+
+  return {
+    candidate,
+    isLoading: geoQuery.isPending || (!!coords && bucketsQuery.isPending),
+    isError: geoQuery.isError || bucketsQuery.isError,
+  };
+}
+
 // recommend/tour 둘 다 백엔드가 페이지네이션을 보장해주지 않아 한 번에 전체를 받아오는 경우가 있다.
 // 그대로 다 보여주면 "한꺼번에 다 로드되는" 느낌이 나므로, 받아온 전체 배열을
 // pageParam(all/offset)에 담아 클라이언트에서 PAGE_SIZE 단위로 잘라서 보여준다.
@@ -118,22 +232,54 @@ function sliceAll(all, offset) {
   };
 }
 
-async function fetchNearbyPage(lat, lng, pageParam) {
+async function fetchNearbyPage(lat, lng, lang, pageParam) {
   if (pageParam.all) {
     return sliceAll(pageParam.all, pageParam.offset);
   }
 
   // 최초 페이지: K-컬처 큐레이션(recommend)을 우선 시도한다.
-  const recommended = await fetchRecommend(lat, lng);
+  const recommended = await fetchRecommend(lat, lng, lang);
   if (recommended.length > 0) {
     return sliceAll(recommended, 0);
   }
   // 큐레이션 반경 밖(지방 등)이면 장르 무관 일반 근처 검색으로 대체
-  const tourAll = await fetchNearbyTourAll(lat, lng);
+  const tourAll = await fetchNearbyTourAll(lat, lng, lang);
   return sliceAll(tourAll, 0);
 }
 
+// 이미 내 버킷리스트에 담은 장소인지 확인 — 장소명 또는 좌표(소수점 5자리 이내) 일치로 판단
+const fetchMyBucketPlaces = () =>
+  client
+    .get('/api/v1/bucket-lists', { params: { category: 'ALL', page: 0, size: 1000 } })
+    .then(unwrap)
+    .then((page) => page?.content ?? []);
+
+function useMyBucketPlacesQuery(enabled) {
+  return useQuery({
+    queryKey: ['bucket', 'addedLookup'],
+    queryFn: fetchMyBucketPlaces,
+    enabled,
+  });
+}
+
+function isPlaceInMyBucket(place, bucketPlaces) {
+  return (bucketPlaces ?? []).some((b) => {
+    const sameName =
+      b.placeName?.trim().toLocaleLowerCase() === place.title?.trim().toLocaleLowerCase();
+    const sameCoordinates =
+      b.latitude != null &&
+      b.longitude != null &&
+      place.lat != null &&
+      place.lng != null &&
+      Math.abs(Number(b.latitude) - place.lat) < 0.00001 &&
+      Math.abs(Number(b.longitude) - place.lng) < 0.00001;
+    return sameName || sameCoordinates;
+  });
+}
+
 export function useNearbyRecommendQuery() {
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const lang = useTourLang();
   const geoQuery = useQuery({
     queryKey: ['geo', 'current'],
     queryFn: getCurrentPosition,
@@ -143,15 +289,28 @@ export function useNearbyRecommendQuery() {
   const coords = geoQuery.data;
 
   const query = useInfiniteQuery({
-    queryKey: ['recommend', 'nearby', coords?.lat, coords?.lng],
-    queryFn: ({ pageParam }) => fetchNearbyPage(coords.lat, coords.lng, pageParam),
+    queryKey: ['recommend', 'nearby', coords?.lat, coords?.lng, lang],
+    queryFn: ({ pageParam }) => fetchNearbyPage(coords.lat, coords.lng, lang, pageParam),
     initialPageParam: INITIAL_PAGE_PARAM,
     getNextPageParam: (lastPage) => lastPage.nextPageParam,
     enabled: !!coords,
   });
+  const myPlacesQuery = useMyBucketPlacesQuery(isAuthenticated);
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = query;
+
+  const fetchedPlaces = query.data?.pages.flatMap((p) => p.items) ?? [];
+  const places = fetchedPlaces.filter((place) => !isPlaceInMyBucket(place, myPlacesQuery.data));
+
+  // 담은 장소를 걸러내고 나면 현재 페이지가 통째로 비어 보일 수 있는데,
+  // 스크롤 트리거는 화면에 실제로 렌더된 콘텐츠 길이에 의존하므로 그 경우 다음 페이지를 바로 이어 받아온다.
+  useEffect(() => {
+    if (places.length === 0 && fetchedPlaces.length > 0 && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [places.length, fetchedPlaces.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return {
-    places: query.data?.pages.flatMap((p) => p.items) ?? [],
+    places,
     // coords 가 없는 동안은 geoQuery 가 아직 진행 중일 때만 로딩 — geoQuery 가 실패했으면(isError) 무한 로딩 대신 에러로 빠진다.
     isLoading: geoQuery.isPending || (!!coords && query.isPending),
     isError: geoQuery.isError || query.isError,
@@ -159,4 +318,40 @@ export function useNearbyRecommendQuery() {
     isFetchingNextPage: query.isFetchingNextPage,
     fetchNextPage: query.fetchNextPage,
   };
+}
+
+export const PLACE_CATEGORIES = [
+  { value: 'K_POP', label: 'K-POP' },
+  { value: 'K_DRAMA', label: 'K-DRAMA' },
+  { value: 'K_FOOD', label: 'K-FOOD' },
+  { value: 'K_BEAUTY', label: 'K-BEAUTY' },
+];
+
+const GENRE_TO_CATEGORY = {
+  'K-pop': 'K_POP',
+  'K-drama': 'K_DRAMA',
+  'K-food': 'K_FOOD',
+  'K-beauty': 'K_BEAUTY',
+};
+
+export function genreToCategory(genre) {
+  return GENRE_TO_CATEGORY[genre] ?? '';
+}
+
+/** 근처 추천 장소를 버킷리스트에 담기 */
+const addPlaceToBucket = (request) => client.post('/api/v1/bucket-lists', request).then(unwrap);
+
+export function useAddPlaceToBucketMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: addPlaceToBucket,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['bucket'] }),
+        queryClient.invalidateQueries({ queryKey: ['home', 'bucketProgress'] }),
+        queryClient.invalidateQueries({ queryKey: ['home', 'bucketListPreview'] }),
+      ]);
+    },
+  });
 }
