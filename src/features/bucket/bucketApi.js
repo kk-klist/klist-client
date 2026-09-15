@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { useBucketLanguage } from './bucketLocale';
 import { client } from '@/shared/api/client';
 import { getCurrentPosition } from '@/shared/utils/geo';
 
@@ -84,10 +85,10 @@ const GENRE_TO_CATEGORY = {
   'K-beauty': 'K_BEAUTY',
 };
 
-const fetchBucketRecommendations = ({ latitude, longitude }) =>
+const fetchBucketRecommendations = ({ latitude, longitude, language }) =>
   client
     .get('/api/v1/recommend', {
-      params: { lat: latitude, lng: longitude },
+      params: { lat: latitude, lng: longitude, lang: language },
     })
     .then(unwrap)
     .then((recommendations) =>
@@ -102,6 +103,7 @@ function roundCoordinate(coordinate) {
 }
 
 export function useBucketRecommendationsQuery(enabled = true) {
+  const language = useBucketLanguage();
   const geoQuery = useQuery({
     queryKey: ['geo', 'current'],
     queryFn: getCurrentPosition,
@@ -115,6 +117,7 @@ export function useBucketRecommendationsQuery(enabled = true) {
         type: 'recommendations',
         latitude: roundCoordinate(coordinates.lat),
         longitude: roundCoordinate(coordinates.lng),
+        language,
       }
     : null;
   const recommendationQuery = useQuery({
@@ -123,6 +126,7 @@ export function useBucketRecommendationsQuery(enabled = true) {
       fetchBucketRecommendations({
         latitude: conditions.latitude,
         longitude: conditions.longitude,
+        language: conditions.language,
       }),
     enabled: enabled && !!coordinates,
     staleTime: RECOMMENDATION_STALE_TIME,
@@ -138,31 +142,41 @@ export function useBucketRecommendationsQuery(enabled = true) {
   };
 }
 
-const fetchTourDetail = ({ contentId, contentTypeId }) =>
+const fetchTourDetail = ({ contentId, contentTypeId, language }) =>
   client
     .get(`/api/v1/tour/detail/${encodeURIComponent(contentId)}`, {
-      params: { contentTypeId, lang: 'ko' },
+      params: { contentTypeId, lang: language },
     })
     .then(unwrap);
 
 export function useBucketRecommendationDetailQuery(recommendation, enabled = true) {
+  const language = useBucketLanguage();
+
   return useQuery({
-    queryKey: ['tour', 'detail', recommendation?.contentId, recommendation?.contentTypeId],
-    queryFn: () => fetchTourDetail(recommendation),
+    queryKey: [
+      'tour',
+      'detail',
+      recommendation?.contentId,
+      recommendation?.contentTypeId,
+      language,
+    ],
+    queryFn: () => fetchTourDetail({ ...recommendation, language }),
     enabled: enabled && !!recommendation?.contentId,
   });
 }
 
-const fetchBucketPlaceSearch = (keyword) =>
+const fetchBucketPlaceSearch = (keyword, language) =>
   client
-    .get('/api/v1/tour/search', { params: { keyword, lang: 'ko' } })
+    .get('/api/v1/tour/search', { params: { keyword, lang: language } })
     .then(unwrap)
     .then((places) => places ?? []);
 
 export function useBucketPlaceSearchQuery(keyword, enabled = true) {
+  const language = useBucketLanguage();
+
   return useQuery({
-    queryKey: ['bucket', 'placeSearch', keyword],
-    queryFn: () => fetchBucketPlaceSearch(keyword),
+    queryKey: ['bucket', 'placeSearch', keyword, language],
+    queryFn: () => fetchBucketPlaceSearch(keyword, language),
     enabled: enabled && !!keyword,
     staleTime: 10 * 60 * 1000,
     retry: 1,

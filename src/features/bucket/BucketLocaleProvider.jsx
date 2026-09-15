@@ -1,9 +1,18 @@
-import { BucketLocaleContext, getBucketCopy } from './bucketLocale';
+import {
+  BucketLanguageContext,
+  BucketLocaleContext,
+  getBucketCopy,
+  getBucketLanguage,
+} from './bucketLocale';
 
 export function BucketLocaleProvider({ language, children }) {
+  const resolvedLanguage = getBucketLanguage(language);
+
   return (
-    <BucketLocaleContext.Provider value={getBucketCopy(language)}>
-      {children}
-    </BucketLocaleContext.Provider>
+    <BucketLanguageContext.Provider value={resolvedLanguage}>
+      <BucketLocaleContext.Provider value={getBucketCopy(resolvedLanguage)}>
+        {children}
+      </BucketLocaleContext.Provider>
+    </BucketLanguageContext.Provider>
   );
 }

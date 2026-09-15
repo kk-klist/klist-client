@@ -142,6 +142,11 @@ const COPY = {
 };
 
 export const BucketLocaleContext = createContext(COPY.en);
+export const BucketLanguageContext = createContext('en');
+
+export function getBucketLanguage(language) {
+  return language === 'ko' ? 'ko' : 'en';
+}
 
 export function getBucketCopy(language) {
   return language === 'ko' ? COPY.ko : COPY.en;
@@ -149,4 +154,8 @@ export function getBucketCopy(language) {
 
 export function useBucketCopy() {
   return useContext(BucketLocaleContext);
+}
+
+export function useBucketLanguage() {
+  return useContext(BucketLanguageContext);
 }
