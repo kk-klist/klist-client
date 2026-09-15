@@ -9,7 +9,7 @@ export const ASSIST_LOCALE = {
     transcribing: '녹음을 글로 변환하고 있어요…',
     waiting: '답변을 준비하고 있어요…',
     expired: '대화 세션이 만료되었어요.',
-    suggestions: ['내 주변 K-pop 명소', '떡볶이 맛집은 어디인가요?', '홍대에서 하루 일정 짜줘'],
+    suggestions: ['코엑스에 대해 알려줘', '부산 맛집을 추천해줘', '가계해수욕장에 대해 알려줘'],
     placeholder: 'K-Buddy에게 무엇이든 물어보세요…',
     input: '질문 입력',
     send: '질문 전송',
