@@ -51,7 +51,7 @@ export default function MyPage() {
   return (
     <ProfileLocaleProvider language={user?.preferredLanguage}>
       <div className="kb-page">
-        <PageHeader title="My" />
+        <PageHeader title={copy.myHeader} />
 
         {/* 프로필 */}
         <section>
@@ -112,7 +112,7 @@ export default function MyPage() {
         {/* My tickets */}
         <section>
           <div className="flex items-center justify-between">
-            <h2 className="kb-section">My tickets</h2>
+            <h2 className="kb-section">{copy.myTicketsTitle}</h2>
             <button
               type="button"
               className="rounded-full bg-primary px-4 py-2 text-[13px] font-bold text-white"
@@ -254,11 +254,11 @@ export default function MyPage() {
 
         {/* 설정 */}
         <section>
-          <h2 className="kb-section">Settings</h2>
+          <h2 className="kb-section">{copy.settingsTitle}</h2>
           <div className="kb-card mt-3 divide-y divide-line">
             <SettingRow
               icon="A문"
-              label="Language"
+              label={copy.languageLabel}
               value={isAuthenticated ? langLabel : '-'}
               valueClass="text-primary"
               onClick={handleLanguageClick}
