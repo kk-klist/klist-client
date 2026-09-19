@@ -1,17 +1,39 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { selectIsAuthenticated } from '@/features/auth/authSlice';
+import { Button } from '@/shared/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/shared/components/ui/dialog';
 import { cn } from '@/shared/utils/cn';
 import { Toaster } from '@/shared/components/Toaster';
 
-// 목업 하단 내비(Home·Bucket·Map·Me) + AI 어시스트 탭 추가 (5페이지)
 const TABS = [
   { to: '/home', label: 'Home', icon: HomeIcon },
   { to: '/bucket', label: 'Bucket', icon: ListIcon },
   { to: '/map', label: 'Map', icon: PinIcon },
   { to: '/assist', label: 'AI Chat', icon: SparkIcon },
-  { to: '/my', label: 'MyPage', icon: UserIcon },
+  { to: '/my', label: 'MyPage', icon: UserIcon, requiresAuth: true },
 ];
 
 export function AppLayout() {
+  const navigate = useNavigate();
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const [loginPromptOpen, setLoginPromptOpen] = useState(false);
+
+  function handleTabClick(e, requiresAuth) {
+    if (requiresAuth && !isAuthenticated) {
+      e.preventDefault();
+      setLoginPromptOpen(true);
+    }
+  }
+
   return (
     <div className="fixed inset-0 mx-auto flex max-w-[560px] flex-col bg-surface">
       <main className="relative flex-1 overflow-hidden">
@@ -19,10 +41,11 @@ export function AppLayout() {
       </main>
       <Toaster />
       <nav className="flex h-[60px] shrink-0 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] shadow-lg">
-        {TABS.map(({ to, label, icon: Icon }) => (
+        {TABS.map(({ to, label, icon: Icon, requiresAuth }) => (
           <NavLink
             key={to}
             to={to}
+            onClick={(e) => handleTabClick(e, requiresAuth)}
             className={({ isActive }) =>
               cn(
                 'flex flex-1 flex-col items-center justify-center gap-1 text-[11px] font-bold',
@@ -35,6 +58,28 @@ export function AppLayout() {
           </NavLink>
         ))}
       </nav>
+
+      <Dialog open={loginPromptOpen} onOpenChange={setLoginPromptOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sign in required</DialogTitle>
+            <DialogDescription>Sign in to use My page.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLoginPromptOpen(false)}>
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                setLoginPromptOpen(false);
+                navigate('/login');
+              }}
+            >
+              Go to sign in
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
