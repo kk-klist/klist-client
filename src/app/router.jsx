@@ -38,14 +38,19 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    element: <AppLayout />, // 하단 탭 내비 공통 레이아웃. 게스트 열람 허용 (MyPage/LoginRequiredDialog가 자체적으로 로그인 유도).
+    element: <AppLayout />, // 하단 탭 내비 공통 레이아웃.
     children: [
       { path: '/', element: <Navigate to="/home" replace /> },
       { path: '/home', element: <HomePage /> }, // 홈 (디자인 깡통 — 홈 담당)
       { path: '/bucket', element: <BucketPage /> }, // 버킷리스트 (디자인 깡통 — 버킷 담당)
       { path: '/map', element: <MapPage /> }, // 지도 (백엔드 연동 완성 — 지도 담당)
       { path: '/assist', element: <AssistPage /> }, // AI 어시스트 (디자인 깡통 — 챗봇 담당)
-      { path: '/my', element: <MyPage /> }, // 마이페이지 (디자인 깡통 — 프로필 담당)
+      {
+        element: <ProtectedRoute />, // 마이페이지는 로그인 필수
+        children: [
+          { path: '/my', element: <MyPage /> }, // 마이페이지 (디자인 깡통 — 프로필 담당)
+        ],
+      },
     ],
   },
 ]);

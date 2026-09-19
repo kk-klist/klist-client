@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { selectCurrentUser, selectIsAuthenticated } from '@/features/auth/authSlice';
+import { selectCurrentUser } from '@/features/auth/authSlice';
 import { useLogoutMutation } from '@/features/auth/authApi';
 import { SUPPORTED_LANGUAGES } from '@/shared/constants/locationOptions';
 import { PageHeader } from '@/shared/components/PageHeader';
@@ -9,7 +9,6 @@ import { cn } from '@/shared/utils/cn';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { getCountryFlagEmoji } from './countryFlag';
 import { LanguageBottomSheet } from './LanguageBottomSheet';
-import { LoginRequiredDialog } from './LoginRequiredDialog';
 import { LogoutConfirmDialog } from './LogoutConfirmDialog';
 import { WithdrawConfirmDialog } from './WithdrawConfirmDialog';
 import { useWithdrawMutation } from './profileApi';
@@ -20,9 +19,7 @@ import { ProfileLocaleProvider } from './ProfileLocaleProvider';
 
 export default function MyPage() {
   const navigate = useNavigate();
-  const isAuthenticated = useSelector(selectIsAuthenticated);
   const user = useSelector(selectCurrentUser);
-  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
   const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
@@ -43,83 +40,55 @@ export default function MyPage() {
   const langLabel =
     SUPPORTED_LANGUAGES.find((l) => l.value === user?.preferredLanguage)?.label ?? '-';
 
-  const handleLanguageClick = () => {
-    if (!isAuthenticated) setLoginDialogOpen(true);
-    else setLanguageSheetOpen(true);
-  };
+  const handleLanguageClick = () => setLanguageSheetOpen(true);
 
   return (
     <ProfileLocaleProvider language={user?.preferredLanguage}>
       <div className="kb-page">
-        <PageHeader title="My" />
+        <PageHeader title={copy.myHeader} />
 
         {/* 프로필 */}
         <section>
           <div className="kb-card flex items-center gap-4 p-5">
-            {isAuthenticated &&
-              (user?.profileImageUrl ? (
-                <img
-                  src={user.profileImageUrl}
-                  alt=""
-                  className="h-16 w-16 rounded-full object-cover ring-2 ring-black/80"
-                />
-              ) : (
-                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-track">
-                  <ProfileIcon />
-                </span>
-              ))}
-            <div className="flex-1 space-y-1.5">
-              {isAuthenticated ? (
-                <>
-                  <h1 className="text-[24px] font-extrabold tracking-tight">{user?.nickname}</h1>
-                  <p
-                    className="flex items-center gap-2 text-[18px]"
-                    aria-label={copy.nationalityAndLanguageLabel}
-                  >
-                    <span>{getCountryFlagEmoji(user?.nationality)}</span>
-                    <span className="text-[14px] font-semibold text-muted-foreground">
-                      {langLabel}
-                    </span>
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-[14px] font-semibold text-muted-foreground">
-                    {copy.loginPrompt}
-                  </p>
-                  <button
-                    type="button"
-                    className="rounded-full bg-primary px-4 py-1.5 text-[13px] font-bold text-white"
-                    onClick={() => navigate('/login')}
-                  >
-                    {copy.login}
-                  </button>
-                </>
-              )}
-            </div>
-            {isAuthenticated && (
-              <button
-                type="button"
-                onClick={() => navigate('/profile/edit')}
-                className="rounded-full bg-track px-3 py-1.5 text-[12px] font-bold text-muted-foreground"
-              >
-                {copy.edit}
-              </button>
+            {user?.profileImageUrl ? (
+              <img
+                src={user.profileImageUrl}
+                alt=""
+                className="h-16 w-16 rounded-full object-cover ring-2 ring-black/80"
+              />
+            ) : (
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-track">
+                <ProfileIcon />
+              </span>
             )}
+            <div className="flex-1 space-y-1.5">
+              <h1 className="text-[24px] font-extrabold tracking-tight">{user?.nickname}</h1>
+              <p
+                className="flex items-center gap-2 text-[18px]"
+                aria-label={copy.nationalityAndLanguageLabel}
+              >
+                <span>{getCountryFlagEmoji(user?.nationality)}</span>
+                <span className="text-[14px] font-semibold text-muted-foreground">{langLabel}</span>
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/profile/edit')}
+              className="rounded-full bg-track px-3 py-1.5 text-[12px] font-bold text-muted-foreground"
+            >
+              {copy.edit}
+            </button>
           </div>
         </section>
 
         {/* My tickets */}
         <section>
           <div className="flex items-center justify-between">
-            <h2 className="kb-section">My tickets</h2>
+            <h2 className="kb-section">{copy.myTicketsTitle}</h2>
             <button
               type="button"
               className="rounded-full bg-primary px-4 py-2 text-[13px] font-bold text-white"
-              onClick={() => {
-                if (isAuthenticated) setEndTripSheetOpen(true);
-                else setLoginDialogOpen(true);
-              }}
+              onClick={() => setEndTripSheetOpen(true)}
             >
               {copy.endTrip}
             </button>
@@ -254,39 +223,34 @@ export default function MyPage() {
 
         {/* 설정 */}
         <section>
-          <h2 className="kb-section">Settings</h2>
+          <h2 className="kb-section">{copy.settingsTitle}</h2>
           <div className="kb-card mt-3 divide-y divide-line">
             <SettingRow
               icon="A문"
-              label="Language"
-              value={isAuthenticated ? langLabel : '-'}
+              label={copy.languageLabel}
+              value={langLabel}
               valueClass="text-primary"
               onClick={handleLanguageClick}
             />
-            {isAuthenticated && (
-              <SettingRow
-                icon="🚪"
-                label={copy.logout}
-                labelClass="text-destructive"
-                value=""
-                onClick={() => setLogoutDialogOpen(true)}
-              />
-            )}
-            {isAuthenticated && (
-              <SettingRow
-                icon="⚠️"
-                label={copy.withdraw}
-                labelClass="text-destructive"
-                value=""
-                onClick={() => setWithdrawDialogOpen(true)}
-              />
-            )}
+            <SettingRow
+              icon="🚪"
+              label={copy.logout}
+              labelClass="text-destructive"
+              value=""
+              onClick={() => setLogoutDialogOpen(true)}
+            />
+            <SettingRow
+              icon="⚠️"
+              label={copy.withdraw}
+              labelClass="text-destructive"
+              value=""
+              onClick={() => setWithdrawDialogOpen(true)}
+            />
           </div>
         </section>
 
         <EndTripBottomSheet open={endTripSheetOpen} onOpenChange={setEndTripSheetOpen} />
         <LanguageBottomSheet open={languageSheetOpen} onOpenChange={setLanguageSheetOpen} />
-        <LoginRequiredDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} />
         <LogoutConfirmDialog
           open={logoutDialogOpen}
           onOpenChange={setLogoutDialogOpen}

@@ -2,8 +2,10 @@ import { createContext, useContext } from 'react';
 
 const COPY = {
   ko: {
-    loginPrompt: '로그인하고 시작해요',
-    login: '로그인',
+    myHeader: '마이',
+    myTicketsTitle: '내 티켓',
+    settingsTitle: '설정',
+    languageLabel: '언어',
     edit: '편집',
     endTrip: '여행 종료',
     ticketsError: '티켓을 불러오지 못했어요.',
@@ -45,8 +47,10 @@ const COPY = {
     languageSheetTitle: '표시 언어 선택',
   },
   en: {
-    loginPrompt: 'Sign in to get started',
-    login: 'Sign in',
+    myHeader: 'My',
+    myTicketsTitle: 'My tickets',
+    settingsTitle: 'Settings',
+    languageLabel: 'Language',
     edit: 'Edit',
     endTrip: 'End Trip',
     ticketsError: 'Failed to load tickets.',
@@ -89,10 +93,10 @@ const COPY = {
   },
 };
 
-export const ProfileLocaleContext = createContext(COPY.ko);
+export const ProfileLocaleContext = createContext(COPY.en);
 
 export function getProfileCopy(language) {
-  return language === 'en' ? COPY.en : COPY.ko;
+  return language === 'ko' ? COPY.ko : COPY.en;
 }
 
 export function useProfileCopy() {

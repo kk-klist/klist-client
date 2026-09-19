@@ -1,17 +1,52 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { selectIsAuthenticated, selectCurrentUser } from '@/features/auth/authSlice';
 import { cn } from '@/shared/utils/cn';
 import { Toaster } from '@/shared/components/Toaster';
+import { Button } from '@/shared/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/shared/components/ui/dialog';
 
-// 목업 하단 내비(Home·Bucket·Map·Me) + AI 어시스트 탭 추가 (5페이지)
 const TABS = [
   { to: '/home', label: 'Home', icon: HomeIcon },
   { to: '/bucket', label: 'Bucket', icon: ListIcon },
   { to: '/map', label: 'Map', icon: PinIcon },
   { to: '/assist', label: 'AI Chat', icon: SparkIcon },
-  { to: '/my', label: 'MyPage', icon: UserIcon },
+  { to: '/my', label: 'MyPage', icon: UserIcon, requiresAuth: true },
 ];
 
+const TAB_CLASS = 'flex flex-1 flex-col items-center justify-center gap-1 text-[11px] font-bold';
+
+const LOGIN_REQUIRED_COPY = {
+  ko: {
+    title: '로그인이 필요한 기능이에요',
+    description: '로그인하면 마이페이지를 이용할 수 있어요.',
+    close: '닫기',
+    goToLogin: '로그인하러 가기',
+  },
+  en: {
+    title: 'Sign in required',
+    description: 'Sign in to use My page.',
+    close: 'Close',
+    goToLogin: 'Go to sign in',
+  },
+};
+
 export function AppLayout() {
+  const navigate = useNavigate();
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const user = useSelector(selectCurrentUser);
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+
+  const copy = user?.preferredLanguage === 'ko' ? LOGIN_REQUIRED_COPY.ko : LOGIN_REQUIRED_COPY.en;
+
   return (
     <div className="fixed inset-0 mx-auto flex max-w-[560px] flex-col bg-surface">
       <main className="relative flex-1 overflow-hidden">
@@ -19,22 +54,47 @@ export function AppLayout() {
       </main>
       <Toaster />
       <nav className="flex h-[60px] shrink-0 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] shadow-lg">
-        {TABS.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              cn(
-                'flex flex-1 flex-col items-center justify-center gap-1 text-[11px] font-bold',
-                isActive ? 'text-primary' : 'text-muted2',
-              )
-            }
-          >
-            <Icon />
-            {label}
-          </NavLink>
-        ))}
+        {TABS.map(({ to, label, icon: Icon, requiresAuth }) => {
+          if (requiresAuth && !isAuthenticated) {
+            return (
+              <button
+                key={to}
+                type="button"
+                className={cn(TAB_CLASS, 'text-muted2')}
+                onClick={() => setLoginDialogOpen(true)}
+              >
+                <Icon />
+                {label}
+              </button>
+            );
+          }
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) => cn(TAB_CLASS, isActive ? 'text-primary' : 'text-muted2')}
+            >
+              <Icon />
+              {label}
+            </NavLink>
+          );
+        })}
       </nav>
+
+      <Dialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{copy.title}</DialogTitle>
+            <DialogDescription>{copy.description}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLoginDialogOpen(false)}>
+              {copy.close}
+            </Button>
+            <Button onClick={() => navigate('/login')}>{copy.goToLogin}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
