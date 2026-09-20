@@ -11,8 +11,9 @@ const INITIAL_PAGE_PARAM = { all: null, offset: 0 };
 
 const unwrap = (res) => res?.data;
 
-// TourAPI 관광지명/설명은 마이페이지 언어 설정(ko/en)에 맞춰 받아온다 — 지원 언어는 지도 기능과 동일하게 ko/en만.
-function useTourLang() {
+// TourAPI 관광지명/설명, 날씨 복장 문구처럼 서버가 언어별 텍스트를 내려주는 API는
+// 마이페이지 언어 설정(ko/en)에 맞춰 받아온다 — 지원 언어는 지도 기능과 동일하게 ko/en만.
+export function useApiLang() {
   const preferredLanguage = useSelector(selectCurrentUser)?.preferredLanguage;
   return preferredLanguage === 'en' ? 'en' : 'ko';
 }
@@ -88,7 +89,7 @@ const fetchPlaceDetail = (contentId, contentTypeId, lang) =>
     .then((d) => (d ? toPlaceDetail(d) : null));
 
 export function usePlaceDetailQuery(contentId, contentTypeId) {
-  const lang = useTourLang();
+  const lang = useApiLang();
 
   return useQuery({
     queryKey: ['placeDetail', contentId, contentTypeId, lang],
@@ -278,7 +279,7 @@ function isPlaceInMyBucket(place, bucketPlaces) {
 
 export function useNearbyRecommendQuery() {
   const isAuthenticated = useSelector(selectIsAuthenticated);
-  const lang = useTourLang();
+  const lang = useApiLang();
   const geoQuery = useQuery({
     queryKey: ['geo', 'current'],
     queryFn: getCurrentPosition,
