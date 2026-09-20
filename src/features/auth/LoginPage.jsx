@@ -1,9 +1,16 @@
+const COPY = {
+  subtitle: 'K-Culture Bucket List Travel Map',
+  kakao: 'Continue with Kakao',
+  google: 'Continue with Google',
+  browseWithoutLogin: 'Browse without signing in',
+};
+
 export default function LoginPage() {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-8 px-8">
       <div className="text-center">
         <h1 className="text-3xl font-extrabold text-primary">Klist+</h1>
-        <p className="mt-2 text-sm text-muted-foreground">K-컬처 버킷리스트 여행 지도</p>
+        <p className="mt-2 text-sm text-muted-foreground">{COPY.subtitle}</p>
       </div>
 
       <div className="w-full max-w-xs space-y-3">
@@ -14,7 +21,7 @@ export default function LoginPage() {
             window.location.href = `${import.meta.env.VITE_API_BASE_URL}/oauth2/authorization/kakao`;
           }}
         >
-          카카오로 시작하기
+          {COPY.kakao}
         </button>
         <button
           type="button"
@@ -23,12 +30,12 @@ export default function LoginPage() {
             window.location.href = `${import.meta.env.VITE_API_BASE_URL}/oauth2/authorization/google`;
           }}
         >
-          Google로 시작하기
+          {COPY.google}
         </button>
       </div>
 
       <a href="/map" className="text-xs text-muted-foreground underline">
-        로그인 없이 둘러보기 (데모)
+        {COPY.browseWithoutLogin}
       </a>
     </div>
   );
