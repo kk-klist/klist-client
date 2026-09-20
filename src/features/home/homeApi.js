@@ -117,7 +117,7 @@ export function useBucketProgressQuery(options) {
   });
 }
 
-/** BucketListPreview — 홈 화면 미리보기용 최신 등록 순 상위 N건 */
+/** BucketListPreview — 홈 화면 미리보기용 미완료 항목 중 최신 등록 순 상위 N건 */
 const BUCKET_PREVIEW_SIZE = 3;
 
 function toBucketListPreviewItem(b) {
@@ -125,7 +125,6 @@ function toBucketListPreviewItem(b) {
     id: b.bucketListId,
     title: b.title,
     category: b.category,
-    isCompleted: b.isCompleted === true,
     imageUrl: b.imageUrl ?? null,
     placeName: b.placeName ?? b.address ?? null,
   };
@@ -134,7 +133,7 @@ function toBucketListPreviewItem(b) {
 const fetchBucketListPreview = () =>
   client
     .get('/api/v1/bucket-lists', {
-      params: { category: 'ALL', page: 0, size: BUCKET_PREVIEW_SIZE },
+      params: { category: 'ALL', completed: false, page: 0, size: BUCKET_PREVIEW_SIZE },
     })
     .then(unwrap)
     .then((page) => (page?.content ?? []).map(toBucketListPreviewItem));
