@@ -11,8 +11,9 @@ const INITIAL_PAGE_PARAM = { all: null, offset: 0 };
 
 const unwrap = (res) => res?.data;
 
-// TourAPI 관광지명/설명은 마이페이지 언어 설정(ko/en)에 맞춰 받아온다 — 지원 언어는 지도 기능과 동일하게 ko/en만.
-function useTourLang() {
+// TourAPI 관광지명/설명, 날씨 복장 문구처럼 서버가 언어별 텍스트를 내려주는 API는
+// 마이페이지 언어 설정(ko/en)에 맞춰 받아온다 — 지원 언어는 지도 기능과 동일하게 ko/en만.
+export function useApiLang() {
   const preferredLanguage = useSelector(selectCurrentUser)?.preferredLanguage;
   return preferredLanguage === 'en' ? 'en' : 'ko';
 }
@@ -88,7 +89,7 @@ const fetchPlaceDetail = (contentId, contentTypeId, lang) =>
     .then((d) => (d ? toPlaceDetail(d) : null));
 
 export function usePlaceDetailQuery(contentId, contentTypeId) {
-  const lang = useTourLang();
+  const lang = useApiLang();
 
   return useQuery({
     queryKey: ['placeDetail', contentId, contentTypeId, lang],
@@ -117,7 +118,7 @@ export function useBucketProgressQuery(options) {
   });
 }
 
-/** BucketListPreview — 홈 화면 미리보기용 최신 등록 순 상위 N건 */
+/** BucketListPreview — 홈 화면 미리보기용 미완료 항목 중 최신 등록 순 상위 N건 */
 const BUCKET_PREVIEW_SIZE = 3;
 
 function toBucketListPreviewItem(b) {
@@ -125,7 +126,6 @@ function toBucketListPreviewItem(b) {
     id: b.bucketListId,
     title: b.title,
     category: b.category,
-    isCompleted: b.isCompleted === true,
     imageUrl: b.imageUrl ?? null,
     placeName: b.placeName ?? b.address ?? null,
   };
@@ -134,7 +134,7 @@ function toBucketListPreviewItem(b) {
 const fetchBucketListPreview = () =>
   client
     .get('/api/v1/bucket-lists', {
-      params: { category: 'ALL', page: 0, size: BUCKET_PREVIEW_SIZE },
+      params: { category: 'ALL', completed: false, page: 0, size: BUCKET_PREVIEW_SIZE },
     })
     .then(unwrap)
     .then((page) => (page?.content ?? []).map(toBucketListPreviewItem));
@@ -149,8 +149,8 @@ export function useBucketListPreviewQuery(options) {
 
 /**
  * NearbyCheckin — 미완료 버킷리스트 중 현재 위치에서 가장 가까운 항목.
- * 실제 방문 인증(거리 검증 + completion PATCH)은 지도 화면이 담당하므로,
- * 여기서는 "근처에 인증 가능한 장소가 있는지"만 판단해 지도로 안내한다.
+ * 서버에는 거리 검증이 없어서 반경(NEARBY_CHECKIN_RADIUS_METERS) 검증은 프론트 haversine 이 담당하고,
+ * 통과한 항목만 후보로 노출한다. 후보를 누르면 바로 completion PATCH 로 완료 처리한다.
  */
 const NEARBY_CHECKIN_RADIUS_METERS = 500;
 
@@ -279,7 +279,7 @@ function isPlaceInMyBucket(place, bucketPlaces) {
 
 export function useNearbyRecommendQuery() {
   const isAuthenticated = useSelector(selectIsAuthenticated);
-  const lang = useTourLang();
+  const lang = useApiLang();
   const geoQuery = useQuery({
     queryKey: ['geo', 'current'],
     queryFn: getCurrentPosition,
@@ -351,6 +351,24 @@ export function useAddPlaceToBucketMutation() {
         queryClient.invalidateQueries({ queryKey: ['bucket'] }),
         queryClient.invalidateQueries({ queryKey: ['home', 'bucketProgress'] }),
         queryClient.invalidateQueries({ queryKey: ['home', 'bucketListPreview'] }),
+      ]);
+    },
+  });
+}
+
+/** 근처 체크인 후보를 바로 완료 처리 */
+const updateBucketCompletion = ({ bucketListId, isCompleted }) =>
+  client.patch(`/api/v1/bucket-lists/${bucketListId}/completion`, { isCompleted }).then(unwrap);
+
+export function useUpdateBucketCompletionMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateBucketCompletion,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['home'] }),
+        queryClient.invalidateQueries({ queryKey: ['bucket'] }),
       ]);
     },
   });

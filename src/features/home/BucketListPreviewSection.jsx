@@ -68,16 +68,6 @@ export function BucketListPreviewSection() {
                       <p className="truncate text-[13px] text-muted-foreground">{item.placeName}</p>
                     )}
                   </div>
-                  <span
-                    className={cn(
-                      'flex size-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-extrabold',
-                      item.isCompleted
-                        ? 'border-success bg-success text-white'
-                        : 'border-line2 bg-card text-transparent',
-                    )}
-                  >
-                    {item.isCompleted && '✓'}
-                  </span>
                 </div>
               );
             })}

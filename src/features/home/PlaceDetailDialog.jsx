@@ -165,7 +165,10 @@ export function PlaceDetailDialog({ place, open, onOpenChange }) {
         place={bucketCandidate}
         open={addOpen}
         onOpenChange={setAddOpen}
-        onAdded={() => setAddOpen(false)}
+        onAdded={() => {
+          setAddOpen(false);
+          onOpenChange(false);
+        }}
       />
     </>
   );
