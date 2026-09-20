@@ -7,6 +7,7 @@ import { EmptyState } from '@/shared/components/EmptyState';
 import { useNearbyRecommendQuery } from './homeApi';
 import { useHomeCopy } from './homeLocale';
 import { PlaceDetailDialog } from './PlaceDetailDialog';
+import { useDragScroll } from './useDragScroll';
 
 const GENRE_META = {
   'K-pop': { label: 'K-POP', grad: 'kb-grad-kpop' },
@@ -28,6 +29,7 @@ export function NearbyRecommendSection() {
     useNearbyRecommendQuery();
   const [selectedPlace, setSelectedPlace] = useState(null);
   const copy = useHomeCopy();
+  const dragScrollRef = useDragScroll();
 
   function handleScroll(e) {
     if (!hasNextPage || isFetchingNextPage) return;
@@ -45,7 +47,8 @@ export function NearbyRecommendSection() {
       {!isLoading && !isError && places.length === 0 && <EmptyState message={copy.nearbyEmpty} />}
       {!isLoading && !isError && places.length > 0 && (
         <div
-          className="no-scrollbar -mx-5 mt-3 flex gap-3 overflow-x-auto px-5"
+          ref={dragScrollRef}
+          className="no-scrollbar -mx-5 mt-3 flex cursor-grab select-none gap-3 overflow-x-auto px-5 active:cursor-grabbing"
           onScroll={handleScroll}
         >
           {places.map((p) => {
