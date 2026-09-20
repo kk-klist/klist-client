@@ -40,6 +40,8 @@ const COPY = {
     checkinEmpty: '근처에 체크인할 버킷리스트가 없어요.',
     nearbyYou: (place) => `근처에 있어요 · ${place}`,
     tapToCheckin: '탭해서 체크인하고 완료하기',
+    checkinSuccess: '체크인 완료! 버킷리스트를 완료했어요.',
+    checkinCompleteError: '체크인에 실패했어요. 잠시 후 다시 시도해 주세요.',
 
     myBucketListTitle: '내 버킷리스트',
     viewAll: '전체 보기 ›',
@@ -103,6 +105,8 @@ const COPY = {
     checkinEmpty: 'No bucket list items to check in nearby.',
     nearbyYou: (place) => `You’re nearby · ${place}`,
     tapToCheckin: 'Tap to check in & complete',
+    checkinSuccess: 'Checked in! Bucket list item completed.',
+    checkinCompleteError: 'Could not check in. Please try again.',
 
     myBucketListTitle: 'My bucket list',
     viewAll: 'View all ›',

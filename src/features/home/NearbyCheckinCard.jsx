@@ -1,5 +1,4 @@
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
 import { Spinner } from '@/shared/components/Spinner';
 import { ErrorMessage } from '@/shared/components/ErrorMessage';
 import { EmptyState } from '@/shared/components/EmptyState';
@@ -7,11 +6,12 @@ import { selectIsAuthenticated } from '@/features/auth/authSlice';
 import { useNearbyCheckinQuery } from './homeApi';
 import { useHomeCopy } from './homeLocale';
 import { LoginPromptCard } from './LoginPromptCard';
+import { useCompleteCheckin } from './useCompleteCheckin';
 
 export function NearbyCheckinCard() {
   const isAuthenticated = useSelector(selectIsAuthenticated);
-  const navigate = useNavigate();
   const { candidate, isLoading, isError } = useNearbyCheckinQuery({ enabled: isAuthenticated });
+  const { completeCheckin, isPending } = useCompleteCheckin();
   const copy = useHomeCopy();
 
   if (!isAuthenticated) {
@@ -27,8 +27,9 @@ export function NearbyCheckinCard() {
   return (
     <button
       type="button"
-      onClick={() => navigate('/map')}
-      className="flex w-full items-center gap-4 rounded-card border border-primary/20 bg-primary-soft p-4 text-left"
+      onClick={() => completeCheckin(candidate.bucketListId)}
+      disabled={isPending}
+      className="flex w-full items-center gap-4 rounded-card border border-primary/20 bg-primary-soft p-4 text-left disabled:opacity-60"
     >
       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-xl text-primary">
         📍

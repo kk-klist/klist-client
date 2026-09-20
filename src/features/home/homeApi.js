@@ -148,8 +148,8 @@ export function useBucketListPreviewQuery(options) {
 
 /**
  * NearbyCheckin — 미완료 버킷리스트 중 현재 위치에서 가장 가까운 항목.
- * 실제 방문 인증(거리 검증 + completion PATCH)은 지도 화면이 담당하므로,
- * 여기서는 "근처에 인증 가능한 장소가 있는지"만 판단해 지도로 안내한다.
+ * 서버에는 거리 검증이 없어서 반경(NEARBY_CHECKIN_RADIUS_METERS) 검증은 프론트 haversine 이 담당하고,
+ * 통과한 항목만 후보로 노출한다. 후보를 누르면 바로 completion PATCH 로 완료 처리한다.
  */
 const NEARBY_CHECKIN_RADIUS_METERS = 500;
 
@@ -350,6 +350,24 @@ export function useAddPlaceToBucketMutation() {
         queryClient.invalidateQueries({ queryKey: ['bucket'] }),
         queryClient.invalidateQueries({ queryKey: ['home', 'bucketProgress'] }),
         queryClient.invalidateQueries({ queryKey: ['home', 'bucketListPreview'] }),
+      ]);
+    },
+  });
+}
+
+/** 근처 체크인 후보를 바로 완료 처리 */
+const updateBucketCompletion = ({ bucketListId, isCompleted }) =>
+  client.patch(`/api/v1/bucket-lists/${bucketListId}/completion`, { isCompleted }).then(unwrap);
+
+export function useUpdateBucketCompletionMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateBucketCompletion,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['home'] }),
+        queryClient.invalidateQueries({ queryKey: ['bucket'] }),
       ]);
     },
   });
