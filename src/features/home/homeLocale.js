@@ -34,8 +34,6 @@ const COPY = {
     progressEmpty: '아직 등록한 버킷리스트가 없어요.',
     progressLabel: '버킷리스트 진행률',
     done: '완료',
-    streak: '7일 연속 달성',
-    badges: '배지 3개',
 
     loginPromptCheckin: '로그인하고 근처 체크인 확인하기',
     checkinError: '근처 체크인 정보를 불러올 수 없어요.',
@@ -99,8 +97,6 @@ const COPY = {
     progressEmpty: "You haven't added any bucket list items yet.",
     progressLabel: 'Bucket list progress',
     done: 'done',
-    streak: '7-day streak',
-    badges: '3 badges',
 
     loginPromptCheckin: 'Log in to see nearby check-ins',
     checkinError: 'Could not load nearby check-in information.',

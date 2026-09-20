@@ -34,14 +34,6 @@ export function BucketProgressCard() {
             / {data.totalCount} {copy.done}
           </span>
         </p>
-        <div className="mt-2 flex gap-2">
-          <span className="rounded-full bg-primary-soft px-3 py-1 text-[12px] font-bold text-primary">
-            ● {copy.streak}
-          </span>
-          <span className="rounded-full bg-track px-3 py-1 text-[12px] font-bold text-muted-foreground">
-            {copy.badges}
-          </span>
-        </div>
       </div>
     </section>
   );
