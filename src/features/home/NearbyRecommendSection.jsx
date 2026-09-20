@@ -15,7 +15,7 @@ const GENRE_META = {
   'K-food': { label: 'K-FOOD', grad: 'kb-grad-kfood' },
   'K-beauty': { label: 'K-BEAUTY', grad: 'kb-grad-kbeauty' },
 };
-const DEFAULT_GENRE_META = { label: 'K-CULTURE', grad: 'kb-grad-kpop' };
+const DEFAULT_GRAD = 'kb-grad-kpop';
 
 function formatDistance(meters) {
   if (meters == null) return null;
@@ -52,7 +52,9 @@ export function NearbyRecommendSection() {
           onScroll={handleScroll}
         >
           {places.map((p) => {
-            const { label, grad } = GENRE_META[p.genre] ?? DEFAULT_GENRE_META;
+            const genreMeta = GENRE_META[p.genre];
+            const grad = genreMeta?.grad ?? DEFAULT_GRAD;
+            const label = genreMeta?.label ?? copy.placeTypeLabels[p.contentTypeId];
             const dist = formatDistance(p.dist);
             return (
               <button
@@ -75,9 +77,11 @@ export function NearbyRecommendSection() {
                       className="h-full w-full object-cover"
                     />
                   )}
-                  <span className="absolute left-3 top-3 rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-extrabold tracking-wider text-white">
-                    {label}
-                  </span>
+                  {label && (
+                    <span className="absolute left-3 top-3 rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-white">
+                      {label}
+                    </span>
+                  )}
                 </div>
                 <p className="mt-2 truncate text-[14px] font-bold leading-snug">{p.title}</p>
                 {dist && <p className="mt-0.5 text-[12px] text-muted-foreground">📍 {dist}</p>}
