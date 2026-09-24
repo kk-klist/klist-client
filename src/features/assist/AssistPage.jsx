@@ -25,20 +25,6 @@ export default function AssistPage() {
       {/* 헤더 (고정) */}
       <div className="shrink-0 border-b border-line px-5 pb-3 pt-[calc(14px+env(safe-area-inset-top))]">
         <PageHeader title="K-Buddy" subtitle={text.subtitle} />
-        <div className="mt-3 flex gap-2" role="group" aria-label={text.language}>
-          {['ko', 'en'].map((language) => (
-            <Button
-              key={language}
-              type="button"
-              size="sm"
-              variant={chat.language === language ? 'default' : 'outline'}
-              aria-pressed={chat.language === language}
-              onClick={() => chat.setLanguage(language)}
-            >
-              {language.toUpperCase()}
-            </Button>
-          ))}
-        </div>
       </div>
 
       {!chat.sessionId ? (

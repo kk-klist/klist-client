@@ -13,16 +13,6 @@ describe('AudioInput', () => {
     delete globalThis.MediaRecorder;
   });
 
-  it('선택한 음성 파일을 전달한다', async () => {
-    const onAudio = vi.fn();
-    const { container } = render(<AudioInput disabled={false} onAudio={onAudio} />);
-    const audio = new File(['voice'], 'voice.mp3', { type: 'audio/mpeg' });
-
-    await userEvent.upload(container.querySelector('input[type="file"]'), audio);
-
-    expect(onAudio).toHaveBeenCalledWith(audio);
-  });
-
   it('녹음 미지원 환경을 안내한다', async () => {
     Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: undefined });
     render(<AudioInput disabled={false} onAudio={vi.fn()} />);
@@ -30,7 +20,7 @@ describe('AudioInput', () => {
     await userEvent.click(screen.getByRole('button', { name: '음성 녹음 시작' }));
 
     expect(toast.error).toHaveBeenCalledWith(
-      '이 브라우저에서는 음성 녹음을 지원하지 않아요. 음성 파일을 선택해 주세요.',
+      '이 브라우저에서는 음성 녹음을 지원하지 않아요. 텍스트로 질문해 주세요.',
     );
   });
 
