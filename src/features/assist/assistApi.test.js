@@ -24,6 +24,24 @@ describe('sendChatAudioQuery', () => {
     expect(body.get('audio')).toMatchObject({ name: 'voice.webm', type: 'audio/webm' });
   });
 
+  it.each([
+    ['audio/mp4', 'recording.mp4'],
+    ['audio/mp4;codecs=mp4a.40.2', 'recording.mp4'],
+    ['audio/webm;codecs=opus', 'recording.webm'],
+  ])('이름 없는 %s 녹음에도 올바른 확장자를 전송한다', async (type, name) => {
+    await sendChatAudioQuery({ sessionId: 'session-1', audio: new Blob(['voice'], { type }) });
+    expect(client.post.mock.calls[0][1].get('audio')).toMatchObject({ name, type });
+  });
+
+  it('MP4 파일의 이름과 MIME 타입을 유지한다', async () => {
+    const audio = new File(['voice'], 'recording.mp4', { type: 'audio/mp4' });
+    await sendChatAudioQuery({ sessionId: 'session-1', audio });
+    expect(client.post.mock.calls[0][1].get('audio')).toMatchObject({
+      name: 'recording.mp4',
+      type: 'audio/mp4',
+    });
+  });
+
   it('영어 음성 요청에 language를 포함한다', async () => {
     client.post.mockResolvedValue({ answer: 'Hello' });
     await sendChatAudioQuery({

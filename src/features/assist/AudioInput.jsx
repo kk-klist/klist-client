@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Mic, Square } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { ASSIST_LOCALE } from './assistLocale';
+import { getRecordingFilename } from './audioFormat';
 import { toast } from '@/shared/utils/toast';
 
 export function AudioInput({ disabled, onAudio, language = 'ko' }) {
@@ -40,11 +41,16 @@ export function AudioInput({ disabled, onAudio, language = 'ko' }) {
       recorderRef.current = recorder;
       recorder.ondataavailable = ({ data }) => data.size > 0 && chunksRef.current.push(data);
       recorder.onstop = () => {
-        const type = recorder.mimeType || 'audio/webm';
-        const file = new File(chunksRef.current, 'recording.webm', { type });
         stream.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
         setIsRecording(false);
+        const type = chunksRef.current.find((chunk) => chunk.type)?.type || recorder.mimeType || '';
+        const filename = getRecordingFilename(type);
+        if (!filename) {
+          toast.error(text.recordingUnsupported);
+          return;
+        }
+        const file = new File(chunksRef.current, filename, { type });
         if (file.size > 0) onAudioRef.current(file);
       };
       recorder.start();
