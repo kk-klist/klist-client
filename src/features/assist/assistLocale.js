@@ -1,6 +1,5 @@
 export const ASSIST_LOCALE = {
   ko: {
-    language: '채팅 언어',
     subtitle: '● 온라인 · AI 여행 도우미',
     welcome: 'K-Buddy와 대화해 보세요',
     description: 'K-컬처 장소와 여행에 관해 무엇이든 물어보세요.',
@@ -18,12 +17,10 @@ export const ASSIST_LOCALE = {
     recordStart: '음성 녹음 시작',
     recordStop: '녹음 중지 및 전송',
     record: '음성 녹음',
-    file: '음성 파일 선택',
-    recordingUnsupported:
-      '이 브라우저에서는 음성 녹음을 지원하지 않아요. 음성 파일을 선택해 주세요.',
+    recordingUnsupported: '이 브라우저에서는 음성 녹음을 지원하지 않아요. 텍스트로 질문해 주세요.',
     microphoneDenied: '마이크 권한이 거부되었어요. 브라우저 설정에서 권한을 허용해 주세요.',
     recordingFailed: '녹음을 시작하지 못했어요. 마이크 연결 상태를 확인해 주세요.',
-    sttFailed: '음성을 이해하지 못했어요. 더 또렷하게 녹음하거나 다른 파일을 선택해 주세요.',
+    sttFailed: '음성을 이해하지 못했어요. 더 또렷하게 다시 녹음해 주세요.',
     networkFailed: '요청을 전송하지 못했어요. 네트워크 연결을 확인하고 다시 시도해 주세요.',
     sessionMissing: '세션 ID가 응답에 없습니다.',
     startFailed: '대화를 시작하지 못했습니다.',
@@ -43,7 +40,6 @@ export const ASSIST_LOCALE = {
     },
   },
   en: {
-    language: 'Chat language',
     subtitle: '● Online · AI travel assistant',
     welcome: 'Chat with K-Buddy',
     description: 'Ask anything about K-culture destinations and travel.',
@@ -52,7 +48,11 @@ export const ASSIST_LOCALE = {
     transcribing: 'Transcribing your recording…',
     waiting: 'Preparing your answer…',
     expired: 'Your chat session has expired.',
-    suggestions: ['K-pop spots near me', 'Where to eat tteokbokki?', 'Plan my day in Hongdae'],
+    suggestions: [
+      'K-Beauty tour places in Daegu',
+      'recommend places in Busan?',
+      'Where can I enjoy nature on Jeju Island?',
+    ],
     placeholder: 'Ask K-Buddy anything…',
     input: 'Enter your question',
     send: 'Send question',
@@ -61,12 +61,11 @@ export const ASSIST_LOCALE = {
     recordStart: 'Start voice recording',
     recordStop: 'Stop recording and send',
     record: 'Record audio',
-    file: 'Choose an audio file',
     recordingUnsupported:
-      'This browser does not support voice recording. Please choose an audio file.',
+      'This browser does not support voice recording. Please type your question.',
     microphoneDenied: 'Microphone access was denied. Please allow access in your browser settings.',
     recordingFailed: 'Could not start recording. Please check your microphone connection.',
-    sttFailed: 'Could not understand the audio. Please record more clearly or choose another file.',
+    sttFailed: 'Could not understand the audio. Please record again more clearly.',
     networkFailed: 'Could not send the request. Check your network connection and try again.',
     sessionMissing: 'The response is missing a session ID.',
     startFailed: 'Could not start the chat.',

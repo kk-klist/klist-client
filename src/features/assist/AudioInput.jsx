@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { FileAudio, Mic, Square } from 'lucide-react';
+import { Mic, Square } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { ASSIST_LOCALE } from './assistLocale';
 import { toast } from '@/shared/utils/toast';
-
-const ACCEPTED_AUDIO_TYPES = 'audio/*,.m4a,.mp3,.wav,.webm,.ogg';
 
 export function AudioInput({ disabled, onAudio, language = 'ko' }) {
   const text = ASSIST_LOCALE[language];
@@ -16,7 +14,6 @@ export function AudioInput({ disabled, onAudio, language = 'ko' }) {
   const recorderRef = useRef(null);
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
-  const fileInputRef = useRef(null);
 
   useEffect(
     () => () => {
@@ -66,12 +63,6 @@ export function AudioInput({ disabled, onAudio, language = 'ko' }) {
     else startRecording();
   }
 
-  function selectFile(event) {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (file) onAudio(file);
-  }
-
   return (
     <>
       <Button
@@ -85,25 +76,6 @@ export function AudioInput({ disabled, onAudio, language = 'ko' }) {
       >
         {isRecording ? <Square className="fill-current text-destructive" /> : <Mic />}
       </Button>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-lg"
-        disabled={disabled || isRecording}
-        aria-label={text.file}
-        title={text.file}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        <FileAudio />
-      </Button>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept={ACCEPTED_AUDIO_TYPES}
-        className="hidden"
-        tabIndex={-1}
-        onChange={selectFile}
-      />
     </>
   );
 }

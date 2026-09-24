@@ -1,4 +1,8 @@
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
+import { createElement } from 'react';
+import { configureStore } from '@reduxjs/toolkit';
+import { Provider } from 'react-redux';
+import authReducer from '@/features/auth/authSlice';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { toast } from '@/shared/utils/toast';
 import { useAssistChat } from './useAssistChat';
@@ -15,6 +19,13 @@ vi.mock('./assistApi', () => ({
   useSendChatAudioQueryMutation: () => mutations.audio,
 }));
 vi.mock('@/shared/utils/toast', () => ({ toast: { error: vi.fn() } }));
+
+function renderChatHook() {
+  const store = configureStore({ reducer: { auth: authReducer } });
+  return renderHook(() => useAssistChat(), {
+    wrapper: ({ children }) => createElement(Provider, { store }, children),
+  });
+}
 
 describe('useAssistChat 음성 질문', () => {
   beforeEach(() => {
@@ -36,10 +47,17 @@ describe('useAssistChat 음성 질문', () => {
       status: 'COMPLETED',
       suggestions: ['카페도 알려줘'],
     });
-    const { result } = renderHook(() => useAssistChat());
+    const { result } = renderChatHook();
+    expect(result.current.language).toBe('ko');
     await startChat(result);
 
-    await act(() => result.current.sendAudio(new File(['voice'], 'voice.webm')));
+    const audio = new File(['voice'], 'voice.webm');
+    await act(() => result.current.sendAudio(audio));
+    expect(mutations.audio.mutateAsync).toHaveBeenCalledWith({
+      sessionId: 'session-1',
+      audio,
+      language: 'ko',
+    });
 
     expect(result.current.messages).toMatchObject([
       { role: 'user', content: '홍대 맛집 알려줘' },
@@ -59,7 +77,7 @@ describe('useAssistChat 음성 질문', () => {
         resolveAudio = resolve;
       }),
     );
-    const { result } = renderHook(() => useAssistChat());
+    const { result } = renderChatHook();
     await startChat(result);
 
     let firstRequest;
@@ -76,13 +94,13 @@ describe('useAssistChat 음성 질문', () => {
 
   it('잘못된 STT 응답을 친화적인 문구로 안내한다', async () => {
     mutations.audio.mutateAsync.mockRejectedValue({ code: 'STT_INVALID_RESPONSE' });
-    const { result } = renderHook(() => useAssistChat());
+    const { result } = renderChatHook();
     await startChat(result);
 
     await act(() => result.current.sendAudio(new File(['voice'], 'voice.webm')));
 
     expect(toast.error).toHaveBeenCalledWith(
-      '음성을 이해하지 못했어요. 더 또렷하게 녹음하거나 다른 파일을 선택해 주세요.',
+      '음성을 이해하지 못했어요. 더 또렷하게 다시 녹음해 주세요.',
     );
   });
 });

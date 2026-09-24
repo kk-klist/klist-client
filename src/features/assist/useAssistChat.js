@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '@/features/auth/authSlice';
 import { ASSIST_LOCALE } from './assistLocale';
 import { toast } from '@/shared/utils/toast';
 import {
@@ -30,7 +32,8 @@ function toAssistantMessage(response, text) {
 }
 
 export function useAssistChat() {
-  const [language, setLanguage] = useState('ko');
+  const user = useSelector(selectCurrentUser);
+  const language = user?.preferredLanguage === 'en' ? 'en' : 'ko';
   const text = ASSIST_LOCALE[language];
   const [sessionId, setSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -111,7 +114,6 @@ export function useAssistChat() {
 
   return {
     language,
-    setLanguage,
     sessionId,
     messages,
     sessionExpired,
