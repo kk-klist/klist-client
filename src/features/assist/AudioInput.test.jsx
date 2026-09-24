@@ -10,8 +10,63 @@ describe('AudioInput', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
     delete globalThis.MediaRecorder;
   });
+
+  it.each([
+    ['audio/mp4', 'audio/mp4', 'recording.mp4'],
+    ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4;codecs=mp4a.40.2', 'recording.mp4'],
+    ['video/mp4', 'video/mp4', 'recording.mp4'],
+    ['audio/webm;codecs=opus', 'audio/webm;codecs=opus', 'recording.webm'],
+    ['', 'audio/mp4', 'recording.mp4'],
+    ['audio/mp4', '', 'recording.mp4'],
+    ['audio/webm', 'audio/mp4', 'recording.mp4'],
+    ['', '', null],
+    ['audio/ogg', 'audio/ogg', null],
+  ])(
+    '녹음 MIME %s와 청크 MIME %s를 파일 형식에 반영한다',
+    async (recorderType, chunkType, filename) => {
+      const stopTrack = vi.fn();
+      vi.stubGlobal('navigator', {
+        mediaDevices: {
+          getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop: stopTrack }] }),
+        },
+      });
+      vi.stubGlobal(
+        'MediaRecorder',
+        class {
+          state = 'inactive';
+          mimeType = recorderType;
+          start() {
+            this.state = 'recording';
+          }
+          stop() {
+            this.state = 'inactive';
+            this.ondataavailable({ data: new Blob(['voice'], { type: chunkType }) });
+            this.onstop?.();
+          }
+        },
+      );
+      const user = userEvent.setup();
+      const onAudio = vi.fn();
+      render(<AudioInput onAudio={onAudio} />);
+      await user.click(screen.getByRole('button', { name: '음성 녹음 시작' }));
+      await user.click(await screen.findByRole('button', { name: '녹음 중지 및 전송' }));
+      expect(stopTrack).toHaveBeenCalledTimes(1);
+      if (filename) {
+        expect(onAudio).toHaveBeenCalledTimes(1);
+        expect(onAudio.mock.calls[0][0]).toMatchObject({
+          name: filename,
+          type: chunkType || recorderType,
+          size: 5,
+        });
+      } else {
+        expect(onAudio).not.toHaveBeenCalled();
+        expect(toast.error).toHaveBeenCalled();
+      }
+    },
+  );
 
   it('녹음 미지원 환경을 안내한다', async () => {
     Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: undefined });

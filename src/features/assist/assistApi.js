@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { client } from '@/shared/api/client';
+import { getRecordingFilename } from './audioFormat';
 
 const unwrap = (response) => response?.data ?? response;
 
@@ -12,7 +13,7 @@ export const sendChatAudioQuery = ({ sessionId, audio, language = 'ko' }) => {
   const formData = new FormData();
   formData.append('sessionId', sessionId);
   formData.append('language', language);
-  formData.append('audio', audio, audio.name || 'recording.webm');
+  formData.append('audio', audio, audio.name || getRecordingFilename(audio.type) || 'recording');
 
   return client.post('/api/v1/chat/query/audio', formData).then(unwrap);
 };
