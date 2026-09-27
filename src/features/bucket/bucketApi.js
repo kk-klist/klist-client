@@ -81,7 +81,7 @@ export function useUpdateBucketCompletionMutation() {
 const fetchBucketRecommendations = ({ latitude, longitude, language, page }) =>
   client
     .get('/api/v1/tour/nearby', {
-      params: { lat: latitude, lng: longitude, lang: language, radius: 3000, page, size: 20 },
+      params: { lat: latitude, lng: longitude, lang: language, radius: 10000, page, size: 20 },
     })
     .then(unwrap)
     .then((result) => ({
@@ -109,6 +109,7 @@ export function useBucketRecommendationsQuery(enabled = true) {
   const conditions = coordinates
     ? {
         type: 'nearbyRecommendations',
+        radius: 10000,
         latitude: roundCoordinate(coordinates.lat),
         longitude: roundCoordinate(coordinates.lng),
         language,

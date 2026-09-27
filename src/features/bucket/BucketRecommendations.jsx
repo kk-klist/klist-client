@@ -48,8 +48,7 @@ export function BucketRecommendations({ filters, onChange }) {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-muted-foreground">{copy.nearbyScope}</p>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {RECOMMENDATION_SORTS.map((sort) => (
           <button
             key={sort.value}
@@ -60,6 +59,9 @@ export function BucketRecommendations({ filters, onChange }) {
             {sort.value === 'DISTANCE' ? copy.sortDistance : copy.sortTitle}
           </button>
         ))}
+        <span className="ml-auto whitespace-nowrap text-xs text-muted-foreground">
+          {copy.recommendationRadius}
+        </span>
       </div>
 
       <div className="flex flex-col gap-3">

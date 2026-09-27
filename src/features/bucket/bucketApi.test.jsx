@@ -48,7 +48,7 @@ describe('버킷리스트 TourAPI 요청 언어', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(client.get).toHaveBeenCalledWith('/api/v1/tour/nearby', {
-      params: { lat: 37.557, lng: 126.902, lang: 'en', radius: 3000, page: 1, size: 20 },
+      params: { lat: 37.557, lng: 126.902, lang: 'en', radius: 10000, page: 1, size: 20 },
     });
     expect(result.current.data[0]).toMatchObject({ contentId: '1', distanceMeters: 120 });
     expect(result.current.data[0].category).toBeUndefined();
@@ -71,7 +71,7 @@ describe('버킷리스트 TourAPI 요청 언어', () => {
     );
     expect(result.current.hasNextPage).toBe(false);
     expect(client.get).toHaveBeenLastCalledWith('/api/v1/tour/nearby', {
-      params: { lat: 37.557, lng: 126.902, lang: 'ko', radius: 3000, page: 2, size: 20 },
+      params: { lat: 37.557, lng: 126.902, lang: 'ko', radius: 10000, page: 2, size: 20 },
     });
   });
 
