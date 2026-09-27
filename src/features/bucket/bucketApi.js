@@ -78,25 +78,19 @@ export function useUpdateBucketCompletionMutation() {
   });
 }
 
-const GENRE_TO_CATEGORY = {
-  'K-pop': 'K_POP',
-  'K-drama': 'K_DRAMA',
-  'K-food': 'K_FOOD',
-  'K-beauty': 'K_BEAUTY',
-};
-
-const fetchBucketRecommendations = ({ latitude, longitude, language }) =>
+const fetchBucketRecommendations = ({ latitude, longitude, language, page }) =>
   client
-    .get('/api/v1/recommend', {
-      params: { lat: latitude, lng: longitude, lang: language },
+    .get('/api/v1/tour/nearby', {
+      params: { lat: latitude, lng: longitude, lang: language, radius: 3000, page, size: 20 },
     })
     .then(unwrap)
-    .then((recommendations) =>
-      (recommendations ?? []).map((recommendation) => ({
+    .then((result) => ({
+      ...result,
+      content: (result.content ?? []).map((recommendation) => ({
         ...recommendation,
-        category: GENRE_TO_CATEGORY[recommendation.genre],
+        distanceMeters: recommendation.distance,
       })),
-    );
+    }));
 
 function roundCoordinate(coordinate) {
   return Number(coordinate.toFixed(3));
@@ -114,16 +108,20 @@ export function useBucketRecommendationsQuery(enabled = true) {
   const coordinates = geoQuery.data;
   const conditions = coordinates
     ? {
-        type: 'recommendations',
+        type: 'nearbyRecommendations',
         latitude: roundCoordinate(coordinates.lat),
         longitude: roundCoordinate(coordinates.lng),
         language,
       }
     : null;
-  const recommendationQuery = useQuery({
+  const recommendationQuery = useInfiniteQuery({
     queryKey: ['bucket', 'list', conditions],
-    queryFn: () =>
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, _pages, lastPageParam) =>
+      lastPage.hasNext ? lastPageParam + 1 : undefined,
+    queryFn: ({ pageParam }) =>
       fetchBucketRecommendations({
+        page: pageParam,
         latitude: conditions.latitude,
         longitude: conditions.longitude,
         language: conditions.language,
@@ -134,7 +132,8 @@ export function useBucketRecommendationsQuery(enabled = true) {
   });
 
   return {
-    data: recommendationQuery.data ?? [],
+    ...recommendationQuery,
+    data: recommendationQuery.data?.pages.flatMap((page) => page.content) ?? [],
     isLoading: enabled && (geoQuery.isPending || (!!coordinates && recommendationQuery.isPending)),
     isError: geoQuery.isError || recommendationQuery.isError,
     error: geoQuery.error ?? recommendationQuery.error,

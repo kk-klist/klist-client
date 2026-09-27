@@ -1,4 +1,6 @@
-import { CATEGORY_STYLES } from './bucketConstants';
+import { useWatch } from 'react-hook-form';
+import { BUCKET_CATEGORIES } from './bucketConstants';
+import { cn } from '@/shared/utils/cn';
 import { useBucketCopy } from './bucketLocale';
 import { useAddBucketRecommendation } from './useAddBucketRecommendation';
 import { Button } from '@/shared/components/ui/button';
@@ -25,7 +27,7 @@ export function BucketRecommendationAddSheet({
     onAdded,
     open,
   );
-  const category = CATEGORY_STYLES[recommendation?.category];
+  const selectedCategory = useWatch({ control: form.control, name: 'category' });
   const placeName = detail?.title ?? recommendation?.title;
 
   return (
@@ -65,12 +67,31 @@ export function BucketRecommendationAddSheet({
               </div>
             </div>
 
-            <div className="space-y-2">
-              <span className="text-sm font-bold text-ink">{copy.categoryLabel}</span>
-              <div className="rounded-xl bg-track px-4 py-3 text-sm font-semibold text-ink">
-                {category?.label ?? recommendation?.category}
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-bold text-ink">{copy.categoryLabel}</legend>
+              <div className="flex flex-wrap gap-2">
+                {BUCKET_CATEGORIES.filter(({ value }) => value !== 'ALL').map((category) => (
+                  <button
+                    key={category.value}
+                    type="button"
+                    disabled={isPending}
+                    className={cn(
+                      'kb-chip',
+                      selectedCategory === category.value && 'kb-chip--active',
+                    )}
+                    aria-pressed={selectedCategory === category.value}
+                    onClick={() =>
+                      form.setValue('category', category.value, { shouldValidate: true })
+                    }
+                  >
+                    {category.label}
+                  </button>
+                ))}
               </div>
-            </div>
+              {form.formState.errors.category && (
+                <p className="text-xs text-destructive">{form.formState.errors.category.message}</p>
+              )}
+            </fieldset>
 
             <label className="block space-y-2">
               <span className="text-sm font-bold text-ink">{copy.descriptionLabel}</span>

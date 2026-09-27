@@ -23,19 +23,25 @@ describe('useBucketRecommendations', () => {
     });
   });
 
-  it('페이지 값이 없으면 첫 페이지 추천 목록을 반환한다', () => {
+  it('불러온 모든 추천 목록을 거리순으로 반환한다', () => {
     const { result } = renderHook(() => useBucketRecommendations({ sort: 'DISTANCE' }));
 
-    expect(result.current.currentPage).toBe(0);
-    expect(result.current.recommendations).toHaveLength(10);
+    expect(result.current.recommendations).toHaveLength(12);
     expect(result.current.recommendations[0].contentId).toBe('1');
   });
 
-  it('두 번째 페이지면 남은 추천 목록을 반환한다', () => {
+  it('이전 페이지 URL이 있어도 목록을 잘라내지 않는다', () => {
     const { result } = renderHook(() => useBucketRecommendations({ sort: 'DISTANCE', page: 1 }));
 
-    expect(result.current.currentPage).toBe(1);
-    expect(result.current.recommendations).toHaveLength(2);
-    expect(result.current.recommendations[0].contentId).toBe('11');
+    expect(result.current.recommendations).toHaveLength(12);
+    expect(result.current.recommendations[0].contentId).toBe('1');
+  });
+
+  it('여러 페이지의 동일 장소를 중복 표시하지 않는다', () => {
+    useBucketRecommendationsQuery.mockReturnValue({
+      data: [recommendations[0], recommendations[0]],
+    });
+    const { result } = renderHook(() => useBucketRecommendations({ sort: 'DISTANCE' }));
+    expect(result.current.recommendations).toHaveLength(1);
   });
 });

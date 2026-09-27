@@ -111,7 +111,7 @@ export function BucketRecommendationDetailSheet({ recommendation, isAdded, open,
             )}
             <Button
               className="h-12 flex-1"
-              disabled={isAdded || !recommendation?.category}
+              disabled={isAdded || !recommendation?.contentId}
               onClick={() => setAddOpen(true)}
             >
               {isAdded ? copy.alreadyAdded : copy.addToBucket}

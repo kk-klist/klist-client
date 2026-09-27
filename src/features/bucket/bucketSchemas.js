@@ -8,6 +8,11 @@ export const createBucketRecommendationSchema = (copy) =>
 
 export const createBucketUpdateSchema = createBucketRecommendationSchema;
 
+export const createBucketPlaceSchema = (copy) =>
+  createBucketRecommendationSchema(copy).extend({
+    category: z.string().min(1, copy.categoryRequired),
+  });
+
 export const createBucketDirectSchema = (copy) =>
   createBucketRecommendationSchema(copy).extend({
     category: z.string().min(1, copy.categoryRequired),

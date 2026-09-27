@@ -16,6 +16,22 @@ vi.mock('@/shared/utils/toast', () => ({
 describe('useAddBucketRecommendation', () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it('분류 없는 장소는 카테고리를 선택한 뒤에만 저장한다', async () => {
+    const mutate = vi.fn();
+    useCreateBucketListMutation.mockReturnValue({ mutate, isPending: false });
+    const place = { title: '식당', latitude: 37.57, longitude: 126.97 };
+    const { result } = renderHook(() => useAddBucketRecommendation(place, null, vi.fn()));
+    result.current.form.setValue('title', '식사하기');
+    await act(() => result.current.handleSubmit());
+    expect(mutate).not.toHaveBeenCalled();
+    result.current.form.setValue('category', 'K_FOOD');
+    await act(() => result.current.handleSubmit());
+    expect(mutate).toHaveBeenCalledWith(
+      expect.objectContaining({ category: 'K_FOOD' }),
+      expect.any(Object),
+    );
+  });
+
   it('사용자가 입력한 제목과 자동 분류된 카테고리로 추천 장소를 추가한다', async () => {
     const mutate = vi.fn();
     useCreateBucketListMutation.mockReturnValue({ mutate, isPending: false });
