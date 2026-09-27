@@ -42,7 +42,7 @@ export const router = createBrowserRouter([
     children: [
       { path: '/', element: <Navigate to="/home" replace /> },
       { path: '/home', element: <HomePage /> }, // 홈 (디자인 깡통 — 홈 담당)
-      { path: '/bucket', element: <BucketPage /> }, // 버킷리스트 (디자인 깡통 — 버킷 담당)
+      { path: '/bucket', element: <BucketPage /> }, // 버킷리스트 (로그인 안내 모달 제공)
       { path: '/map', element: <MapPage /> }, // 지도 (백엔드 연동 완성 — 지도 담당)
       { path: '/assist', element: <AssistPage /> }, // AI 어시스트 (디자인 깡통 — 챗봇 담당)
       {

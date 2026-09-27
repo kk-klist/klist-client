@@ -15,7 +15,7 @@ import { cn } from '@/shared/utils/cn';
 export function BucketRecommendations({ filters, onChange }) {
   const copy = useBucketCopy();
   const [selectedRecommendation, setSelectedRecommendation] = useState(null);
-  const query = useBucketRecommendations(filters);
+  const { loadMoreRef, ...query } = useBucketRecommendations(filters);
   const addedQuery = useAddedBucketListsQuery();
 
   const isAdded = (recommendation) =>
@@ -32,7 +32,7 @@ export function BucketRecommendations({ filters, onChange }) {
     });
 
   if (query.isLoading) return <Spinner />;
-  if (query.isError) {
+  if (query.isError && query.recommendations.length === 0) {
     return (
       <div className="space-y-2 text-center">
         <ErrorMessage message={query.error?.message} />
@@ -48,7 +48,7 @@ export function BucketRecommendations({ filters, onChange }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {RECOMMENDATION_SORTS.map((sort) => (
           <button
             key={sort.value}
@@ -59,6 +59,9 @@ export function BucketRecommendations({ filters, onChange }) {
             {sort.value === 'DISTANCE' ? copy.sortDistance : copy.sortTitle}
           </button>
         ))}
+        <span className="ml-auto whitespace-nowrap text-xs text-muted-foreground">
+          {copy.recommendationRadius}
+        </span>
       </div>
 
       <div className="flex flex-col gap-3">
@@ -80,29 +83,20 @@ export function BucketRecommendations({ filters, onChange }) {
         onOpenChange={(open) => !open && setSelectedRecommendation(null)}
       />
 
-      {query.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3">
+      <div ref={loadMoreRef} className="min-h-8 text-center" aria-live="polite">
+        {query.isFetchingNextPage && <p>{copy.loadingMore}</p>}
+        {query.isError && <ErrorMessage message={query.error?.message} />}
+        {query.hasNextPage && !query.isFetchingNextPage && (
           <Button
             variant="outline"
             size="sm"
-            disabled={query.currentPage === 0}
-            onClick={() => onChange({ page: query.currentPage - 1 })}
+            disabled={query.isFetching}
+            onClick={() => query.fetchNextPage({ cancelRefetch: false })}
           >
-            {copy.previous}
+            {query.isFetchNextPageError ? copy.retry : copy.loadMore}
           </Button>
-          <span className="text-sm text-muted-foreground">
-            {query.currentPage + 1} {copy.page}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!query.hasNext}
-            onClick={() => onChange({ page: query.currentPage + 1 })}
-          >
-            {copy.next}
-          </Button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

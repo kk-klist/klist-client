@@ -16,7 +16,7 @@ import {
 
 const TABS = [
   { to: '/home', label: 'Home', icon: HomeIcon },
-  { to: '/bucket', label: 'Bucket', icon: ListIcon },
+  { to: '/bucket', label: 'Bucket', icon: ListIcon, requiresAuth: true, loginTarget: 'bucket' },
   { to: '/map', label: 'Map', icon: PinIcon },
   { to: '/assist', label: 'AI Chat', icon: SparkIcon },
   { to: '/my', label: 'MyPage', icon: UserIcon, requiresAuth: true },
@@ -30,12 +30,14 @@ const LOGIN_REQUIRED_COPY = {
     description: '로그인하면 마이페이지를 이용할 수 있어요.',
     close: '닫기',
     goToLogin: '로그인하러 가기',
+    bucketDescription: '로그인하면 버킷리스트를 이용할 수 있어요.',
   },
   en: {
     title: 'Sign in required',
     description: 'Sign in to use My page.',
     close: 'Close',
     goToLogin: 'Go to sign in',
+    bucketDescription: 'Sign in to use your bucket list.',
   },
 };
 
@@ -44,6 +46,7 @@ export function AppLayout() {
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const user = useSelector(selectCurrentUser);
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+  const [loginTarget, setLoginTarget] = useState('my');
 
   const copy = user?.preferredLanguage === 'ko' ? LOGIN_REQUIRED_COPY.ko : LOGIN_REQUIRED_COPY.en;
 
@@ -54,14 +57,17 @@ export function AppLayout() {
       </main>
       <Toaster />
       <nav className="flex h-[60px] shrink-0 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] shadow-lg">
-        {TABS.map(({ to, label, icon: Icon, requiresAuth }) => {
+        {TABS.map(({ to, label, icon: Icon, requiresAuth, loginTarget: target }) => {
           if (requiresAuth && !isAuthenticated) {
             return (
               <button
                 key={to}
                 type="button"
                 className={cn(TAB_CLASS, 'text-muted2')}
-                onClick={() => setLoginDialogOpen(true)}
+                onClick={() => {
+                  setLoginTarget(target ?? 'my');
+                  setLoginDialogOpen(true);
+                }}
               >
                 <Icon />
                 {label}
@@ -85,7 +91,9 @@ export function AppLayout() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{copy.title}</DialogTitle>
-            <DialogDescription>{copy.description}</DialogDescription>
+            <DialogDescription>
+              {loginTarget === 'bucket' ? copy.bucketDescription : copy.description}
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setLoginDialogOpen(false)}>

@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 
 import { useCreateBucketListMutation } from './bucketApi';
 import { useBucketCopy } from './bucketLocale';
-import { createBucketRecommendationSchema } from './bucketSchemas';
+import { createBucketPlaceSchema } from './bucketSchemas';
 import { toast } from '@/shared/utils/toast';
 
 function cleanDescription(value) {
@@ -21,8 +21,9 @@ export function useAddBucketRecommendation(recommendation, detail, onAdded, open
   const createMutation = useCreateBucketListMutation();
   const submittedRef = useRef(false);
   const form = useForm({
-    resolver: zodResolver(createBucketRecommendationSchema(copy)),
+    resolver: zodResolver(createBucketPlaceSchema(copy)),
     defaultValues: {
+      category: recommendation?.category ?? '',
       title: '',
       description: cleanDescription(detail?.overview) ?? '',
     },
@@ -32,10 +33,11 @@ export function useAddBucketRecommendation(recommendation, detail, onAdded, open
     if (!open) return;
     submittedRef.current = false;
     form.reset({
+      category: recommendation?.category ?? '',
       title: '',
       description: cleanDescription(detail?.overview) ?? '',
     });
-  }, [detail?.overview, form, open]);
+  }, [detail?.overview, recommendation?.category, form, open]);
 
   const submitRecommendation = (values) => {
     if (submittedRef.current || createMutation.isPending) return;
@@ -45,7 +47,7 @@ export function useAddBucketRecommendation(recommendation, detail, onAdded, open
       {
         title: values.title.trim(),
         description: values.description.trim() || undefined,
-        category: recommendation.category,
+        category: values.category,
         placeName: detail?.title ?? recommendation.title,
         address: detail?.address ?? recommendation.address ?? undefined,
         latitude: detail?.latitude ?? recommendation.latitude,

@@ -38,16 +38,50 @@ describe('버킷리스트 TourAPI 요청 언어', () => {
 
   it('영어 설정이면 추천 요청에 en을 전달한다', async () => {
     getCurrentPosition.mockResolvedValue({ lat: 37.5568, lng: 126.9024 });
-    client.get.mockResolvedValue({ data: [] });
+    client.get.mockResolvedValue({
+      data: { content: [{ contentId: '1', distance: 120 }], hasNext: false },
+    });
 
     const { result } = renderHook(() => useBucketRecommendationsQuery(), {
       wrapper: createQueryWrapper('en'),
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(client.get).toHaveBeenCalledWith('/api/v1/recommend', {
-      params: { lat: 37.557, lng: 126.902, lang: 'en' },
+    expect(client.get).toHaveBeenCalledWith('/api/v1/tour/nearby', {
+      params: { lat: 37.557, lng: 126.902, lang: 'en', radius: 10000, page: 1, size: 20 },
     });
+    expect(result.current.data[0]).toMatchObject({ contentId: '1', distanceMeters: 120 });
+    expect(result.current.data[0].category).toBeUndefined();
+  });
+
+  it('다음 페이지를 누적하고 마지막 페이지에서 추가 조회를 종료한다', async () => {
+    getCurrentPosition.mockResolvedValue({ lat: 37.5568, lng: 126.9024 });
+    client.get
+      .mockResolvedValueOnce({ data: { content: [{ contentId: '1' }], hasNext: true } })
+      .mockResolvedValueOnce({ data: { content: [{ contentId: '2' }], hasNext: false } });
+    const { result } = renderHook(() => useBucketRecommendationsQuery(), {
+      wrapper: createQueryWrapper('ko'),
+    });
+    await waitFor(() => expect(result.current.hasNextPage).toBe(true));
+    await act(async () => {
+      await result.current.fetchNextPage();
+    });
+    await waitFor(() =>
+      expect(result.current.data.map((place) => place.contentId)).toEqual(['1', '2']),
+    );
+    expect(result.current.hasNextPage).toBe(false);
+    expect(client.get).toHaveBeenLastCalledWith('/api/v1/tour/nearby', {
+      params: { lat: 37.557, lng: 126.902, lang: 'ko', radius: 10000, page: 2, size: 20 },
+    });
+  });
+
+  it('위치 권한이 거부되면 관광지 API를 호출하지 않는다', async () => {
+    getCurrentPosition.mockRejectedValue(new Error('위치 권한 필요'));
+    const { result } = renderHook(() => useBucketRecommendationsQuery(), {
+      wrapper: createQueryWrapper(),
+    });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(client.get).not.toHaveBeenCalled();
   });
 
   it('영어 설정이면 관광지 상세 요청에 en을 전달한다', async () => {

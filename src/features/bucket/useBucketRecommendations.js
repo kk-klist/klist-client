@@ -1,13 +1,27 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 import { useBucketRecommendationsQuery } from './bucketApi';
 
-const PAGE_SIZE = 10;
-
 export function useBucketRecommendations(filters, enabled = true) {
   const query = useBucketRecommendationsQuery(enabled);
+  const loadMoreRef = useRef(null);
+  const { fetchNextPage, hasNextPage, isFetching, isFetchNextPageError } = query;
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !hasNextPage || isFetching || isFetchNextPageError) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) fetchNextPage({ cancelRefetch: false });
+      },
+      { rootMargin: '300px 0px' },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetching, isFetchNextPageError]);
   const sortedRecommendations = useMemo(() => {
-    const recommendations = [...query.data];
+    const recommendations = [
+      ...new Map(query.data.map((place) => [place.contentId, place])).values(),
+    ];
 
     if (filters.sort === 'TITLE_ASC') {
       return recommendations.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
@@ -18,17 +32,10 @@ export function useBucketRecommendations(filters, enabled = true) {
         (b.distanceMeters ?? Number.POSITIVE_INFINITY),
     );
   }, [filters.sort, query.data]);
-  const totalPages = Math.ceil(sortedRecommendations.length / PAGE_SIZE);
-  const requestedPage = Number(filters.page);
-  const normalizedPage = Number.isInteger(requestedPage) && requestedPage >= 0 ? requestedPage : 0;
-  const currentPage = Math.min(normalizedPage, Math.max(totalPages - 1, 0));
-  const startIndex = currentPage * PAGE_SIZE;
 
   return {
     ...query,
-    recommendations: sortedRecommendations.slice(startIndex, startIndex + PAGE_SIZE),
-    currentPage,
-    totalPages,
-    hasNext: currentPage + 1 < totalPages,
+    recommendations: sortedRecommendations,
+    loadMoreRef,
   };
 }

@@ -14,7 +14,8 @@ import { BUCKET_TABS, DEFAULT_FILTERS } from './bucketConstants';
 import { Button } from '@/shared/components/ui/button';
 import { PageHeader } from '@/shared/components/PageHeader';
 import { cn } from '@/shared/utils/cn';
-import { selectCurrentUser } from '@/features/auth/authSlice';
+import { selectCurrentUser, selectIsAuthenticated } from '@/features/auth/authSlice';
+import { BucketLoginRequiredDialog } from './BucketLoginRequiredDialog';
 
 function getFilters(searchParams) {
   const page = Number(searchParams.get('page'));
@@ -31,6 +32,7 @@ function getFilters(searchParams) {
 function BucketPageContent() {
   const [createOpen, setCreateOpen] = useState(false);
   const copy = useBucketCopy();
+  const isAuthenticated = useSelector(selectIsAuthenticated);
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = getFilters(searchParams);
   const isMyBucketList = filters.tab === 'my';
@@ -73,15 +75,17 @@ function BucketPageContent() {
         ))}
       </div>
 
-      {isMyBucketList ? (
-        <>
-          <BucketFilters filters={filters} onChange={updateFilters} />
-          <BucketList query={bucketQuery} filters={filters} />
-        </>
-      ) : (
-        <BucketRecommendations filters={filters} onChange={updateFilters} />
-      )}
-      <BucketCreateSheet open={createOpen} onOpenChange={setCreateOpen} />
+      {isAuthenticated &&
+        (isMyBucketList ? (
+          <>
+            <BucketFilters filters={filters} onChange={updateFilters} />
+            <BucketList query={bucketQuery} filters={filters} />
+          </>
+        ) : (
+          <BucketRecommendations filters={filters} onChange={updateFilters} />
+        ))}
+      {isAuthenticated && <BucketCreateSheet open={createOpen} onOpenChange={setCreateOpen} />}
+      <BucketLoginRequiredDialog open={!isAuthenticated} onOpenChange={() => {}} />
     </div>
   );
 }
