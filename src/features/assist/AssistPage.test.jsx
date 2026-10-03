@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { client } from '@/shared/api/client';
-import authReducer, { setUser } from '@/features/auth/authSlice';
+import authReducer, { setCredentials, setUser } from '@/features/auth/authSlice';
 import AssistPage from './AssistPage';
 
 vi.mock('@/shared/api/client', () => ({ client: { post: vi.fn() } }));
@@ -31,7 +31,7 @@ describe('AssistPage language', () => {
 
   function renderChat(preferredLanguage = 'ko') {
     const store = configureStore({ reducer: { auth: authReducer } });
-    store.dispatch(setUser({ preferredLanguage }));
+    store.dispatch(setCredentials({ user: { preferredLanguage }, accessToken: 'test-token' }));
     const view = render(
       <QueryClientProvider
         client={new QueryClient({ defaultOptions: { mutations: { retry: false } } })}
@@ -44,19 +44,20 @@ describe('AssistPage language', () => {
     return { ...view, store };
   }
 
-  it('사용자 언어 설정 변경 시 세션과 메시지를 유지하고 이후 요청에 반영한다', async () => {
+  it('한국어 프로필로 로그인해도 영어로 시작하고 프로필 변경 후에도 대화를 유지한다', async () => {
     const user = userEvent.setup();
     const { store } = renderChat();
     expect(screen.queryByRole('button', { name: 'KO' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'EN' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: '새 대화 시작' }));
+    expect(screen.getByText('Chat with K-Buddy')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Start a new chat' }));
     await user.type(await screen.findByRole('textbox'), '서울 추천');
-    await user.click(screen.getByRole('button', { name: '질문 전송' }));
+    await user.click(screen.getByRole('button', { name: 'Send question' }));
     await waitFor(() =>
       expect(client.post).toHaveBeenCalledWith('/api/v1/chat/query', {
         sessionId: 'session-1',
         message: '서울 추천',
-        language: 'ko',
+        language: 'en',
       }),
     );
     act(() => store.dispatch(setUser({ preferredLanguage: 'en' })));
@@ -78,7 +79,7 @@ describe('AssistPage language', () => {
     expect(client.post.mock.calls.filter(([url]) => url.endsWith('/sessions'))).toHaveLength(1);
   });
 
-  it('영어 안내, 검증 오류와 음성 요청에 선택한 언어를 적용한다', async () => {
+  it('프로필 언어와 관계없이 영어 안내, 검증 오류와 음성 요청을 사용한다', async () => {
     vi.stubGlobal('navigator', {
       mediaDevices: { getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [] }) },
     });
@@ -104,8 +105,7 @@ describe('AssistPage language', () => {
     await user.click(await screen.findByRole('button', { name: 'Send question' }));
     expect(await screen.findByText('Please enter a question.')).toBeInTheDocument();
     act(() => store.dispatch(setUser({ preferredLanguage: 'ko' })));
-    expect(await screen.findByText('질문을 입력해주세요.')).toBeInTheDocument();
-    act(() => store.dispatch(setUser({ preferredLanguage: 'en' })));
+    expect(await screen.findByText('Please enter a question.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Start voice recording' }));
     await user.click(await screen.findByRole('button', { name: 'Stop recording and send' }));
     await waitFor(() => {
