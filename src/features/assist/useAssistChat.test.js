@@ -48,7 +48,7 @@ describe('useAssistChat 음성 질문', () => {
       suggestions: ['카페도 알려줘'],
     });
     const { result } = renderChatHook();
-    expect(result.current.language).toBe('ko');
+    expect(result.current.language).toBe('en');
     await startChat(result);
 
     const audio = new File(['voice'], 'voice.webm');
@@ -56,7 +56,7 @@ describe('useAssistChat 음성 질문', () => {
     expect(mutations.audio.mutateAsync).toHaveBeenCalledWith({
       sessionId: 'session-1',
       audio,
-      language: 'ko',
+      language: 'en',
     });
 
     expect(result.current.messages).toMatchObject([
@@ -100,7 +100,7 @@ describe('useAssistChat 음성 질문', () => {
     await act(() => result.current.sendAudio(new File(['voice'], 'voice.webm')));
 
     expect(toast.error).toHaveBeenCalledWith(
-      '음성을 이해하지 못했어요. 더 또렷하게 다시 녹음해 주세요.',
+      'Could not understand the audio. Please record again more clearly.',
     );
   });
 });

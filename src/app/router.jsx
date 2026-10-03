@@ -44,10 +44,10 @@ export const router = createBrowserRouter([
       { path: '/home', element: <HomePage /> }, // 홈 (디자인 깡통 — 홈 담당)
       { path: '/bucket', element: <BucketPage /> }, // 버킷리스트 (로그인 안내 모달 제공)
       { path: '/map', element: <MapPage /> }, // 지도 (백엔드 연동 완성 — 지도 담당)
-      { path: '/assist', element: <AssistPage /> }, // AI 어시스트 (디자인 깡통 — 챗봇 담당)
       {
-        element: <ProtectedRoute />, // 마이페이지는 로그인 필수
+        element: <ProtectedRoute />, // 챗봇과 마이페이지는 로그인 필수
         children: [
+          { path: '/assist', element: <AssistPage /> }, // AI 어시스트
           { path: '/my', element: <MyPage /> }, // 마이페이지 (디자인 깡통 — 프로필 담당)
         ],
       },

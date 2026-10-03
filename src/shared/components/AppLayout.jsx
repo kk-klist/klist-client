@@ -18,11 +18,12 @@ const TABS = [
   { to: '/home', label: 'Home', icon: HomeIcon },
   { to: '/bucket', label: 'Bucket', icon: ListIcon, requiresAuth: true, loginTarget: 'bucket' },
   { to: '/map', label: 'Map', icon: PinIcon },
-  { to: '/assist', label: 'AI Chat', icon: SparkIcon },
+  { to: '/assist', label: 'AI Chat', icon: SparkIcon, requiresAuth: true, loginTarget: 'assist' },
   { to: '/my', label: 'MyPage', icon: UserIcon, requiresAuth: true },
 ];
 
-const TAB_CLASS = 'flex flex-1 flex-col items-center justify-center gap-1 text-[11px] font-bold';
+const TAB_CLASS =
+  'flex flex-1 cursor-pointer flex-col items-center justify-center gap-1 text-[11px] font-bold';
 
 const LOGIN_REQUIRED_COPY = {
   ko: {
@@ -31,6 +32,7 @@ const LOGIN_REQUIRED_COPY = {
     close: '닫기',
     goToLogin: '로그인하러 가기',
     bucketDescription: '로그인하면 버킷리스트를 이용할 수 있어요.',
+    assistDescription: '로그인하면 AI 챗봇을 이용할 수 있어요.',
   },
   en: {
     title: 'Sign in required',
@@ -38,6 +40,7 @@ const LOGIN_REQUIRED_COPY = {
     close: 'Close',
     goToLogin: 'Go to sign in',
     bucketDescription: 'Sign in to use your bucket list.',
+    assistDescription: 'Sign in to chat with K-Buddy.',
   },
 };
 
@@ -92,7 +95,7 @@ export function AppLayout() {
           <DialogHeader>
             <DialogTitle>{copy.title}</DialogTitle>
             <DialogDescription>
-              {loginTarget === 'bucket' ? copy.bucketDescription : copy.description}
+              {copy[`${loginTarget}Description`] ?? copy.description}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
